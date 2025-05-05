@@ -1,0 +1,310 @@
+<?php
+session_start();
+require_once '../Controllers/ApplicationController.php';
+require_once '../Models/Application.php';
+use Models\Application;
+
+// Assuming the user is logged in and their ID is stored in session
+$hostID = isset($_SESSION['userID']) ? $_SESSION['userID'] : null;
+
+if ($hostID) {
+    $applicationController = new ApplicationController();
+    $applications = $applicationController->getApplicationByOpportunityID($hostID);
+} else {
+    $applications = [];
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>HomeStays - Applications</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="homestays, cultural exchange, volunteer applications, host management" name="keywords">
+    <meta content="Manage volunteer applications for your homestay opportunities" name="description">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Roboto&display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="../lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="../lib/lightbox/css/lightbox.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="../css/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <!-- Spinner End -->
+
+    <!-- Navbar Start -->
+    <?php include 'navHost.php'; ?>
+    <!-- Navbar End -->
+
+    <!-- Applications Start -->
+    <div class="container-fluid py-5">
+        <div class="container py-5">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="mb-3">My Applications</h1>
+                <p class="mb-0">
+                    Review and manage the applications submitted by travelers who are interested in your cultural exchange opportunities. 
+                </p>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-3">
+                                    <select class="form-select" id="statusFilter">
+                                        <option selected>Status</option>
+                                        <option value="accepted">Accepted</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="categoryFilter">
+                                        <option selected>Category</option>
+                                        <option value="teaching">Teaching</option>
+                                        <option value="farming">Farming</option>
+                                        <option value="cooking">Cooking</option>
+                                        <option value="childcare">Childcare</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Search by title">
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="row g-4">
+                <?php
+                // Print the opportunities using the printOpportunities method
+                if (empty($applications)) {
+                    echo "<p>No applications found for this host.</p>";
+                } else {
+                    Application::printOpportunities($applications);
+                }
+                ?>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <button id="prevPage" class="btn btn-sm">&laquo; Prev</button>
+                <div id="pageNumbers" class="page-numbers"></div>
+                <button id="nextPage" class="btn btn-sm ">Next &raquo;</button>
+            </div>
+
+
+        </div>
+    </div>
+    <!-- Applications End -->
+
+    <!-- Footer Start -->
+    <?php include '../Common/footer.php'; ?>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../lib/wow/wow.min.js"></script>
+    <script src="../lib/easing/easing.min.js"></script>
+    <script src="../lib/waypoints/waypoints.min.js"></script>
+    <script src="../lib/counterup/counterup.min.js"></script>
+    <script src="../lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="../js/main.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const opportunities = <?php echo json_encode($applications); ?>;
+
+    let filteredOpportunities = opportunities;
+    let currentPage = 1;
+    const itemsPerPage = 6;
+
+    // Function to display opportunities
+    function displayOpportunities() {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = currentPage * itemsPerPage;
+        const paginatedOpportunities = filteredOpportunities.slice(start, end);
+
+        // Clear existing opportunities
+        const opportunitiesContainer = document.querySelector(".row.g-4");
+        opportunitiesContainer.innerHTML = '';
+
+        // Loop through and display the filtered opportunities
+        paginatedOpportunities.forEach(opp => {
+            let statusText = opp.status.charAt(0).toUpperCase() + opp.status.slice(1);
+            let statusColor = (opp.status === "open") ? "bg-success text-white" :
+                              (opp.status === "closed") ? "bg-danger text-white" : 
+                              (opp.status === "cancelled") ? "bg-warning text-dark" : "bg-secondary text-white";
+
+            let opportunityHTML = `
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <img src="${opp.opportunity_photo || 'default_image.jpg'}" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
+                                <h5 class="card-title mb-0">${opp.title}</h5>
+                                <span class="badge ${statusColor}">${statusText}</span>
+                            </div>
+                            <div class="mb-3">
+                                <p class="mb-2"><i class="fa fa-clock me-2"></i>Created At: ${opp.created_at}</p>
+                                <p class="mb-2"><i class="bi bi-tags-fill me-2"></i> Category: ${opp.category}</p>
+                                <p class="mb-2"><i class="fa fa-location-arrow me-2"></i>Location: ${opp.location}</p>
+                                <p class="mb-2"><i class="bi bi-calendar-fill me-2"></i> Start Date: ${opp.start_date}</p>
+                                <p class="mb-2"><i class="bi bi-calendar-check-fill me-2"></i> End Date: ${opp.end_date}</p>
+                                <p class="mb-2"><i class="fa fa-tasks me-2"></i>Requirements: ${opp.requirements}</p>
+                                <p class="mb-2"><i class="fa fa-info-circle me-2"></i>Description: ${opp.description}</p>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-primary me-2 px-3">Edit</button>
+                                </div>
+                                <button class="btn btn-sm btn-danger">Mark Filled</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            opportunitiesContainer.innerHTML += opportunityHTML;
+        });
+
+        // Update pagination visibility and active status
+        updatePagination();
+    }
+
+    // Function to apply filters based on selected status and category
+    document.getElementById("applyFilters").addEventListener("click", function () {
+        const selectedStatus = document.getElementById("statusFilter").value;
+        const selectedCategory = document.getElementById("categoryFilter").value;
+
+        // Filter the opportunities based on selected status and category
+        const searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
+
+        filteredOpportunities = opportunities.filter(opp => {
+            const statusMatches = (selectedStatus === "Status" || opp.status.toLowerCase() === selectedStatus.toLowerCase());
+            const categoryMatches = (selectedCategory === "Category" || opp.category.toLowerCase() === selectedCategory.toLowerCase());
+            const titleMatches = opp.title.toLowerCase().includes(searchQuery);
+            return statusMatches && categoryMatches && titleMatches;
+        });
+
+
+        currentPage = 1;  // Reset to first page when filters are applied
+        displayOpportunities();
+    });
+
+    // Function to generate dynamic page numbers
+    function generatePageNumbers() {
+        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
+        const pageNumbersContainer = document.getElementById("pageNumbers");
+        
+        // Clear existing page numbers
+        pageNumbersContainer.innerHTML = '';
+
+        // Create page number buttons dynamically
+        for (let i = 1; i <= totalPages; i++) {
+            const pageNumber = document.createElement("span");
+            pageNumber.classList.add("page-link");
+            pageNumber.innerText = i;
+            pageNumber.addEventListener("click", function () {
+                currentPage = i;
+                displayOpportunities();
+            });
+            pageNumbersContainer.appendChild(pageNumber);
+        }
+    }
+
+    // Update pagination links based on the filtered opportunities
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
+
+        // Update Prev/Next buttons visibility
+        document.getElementById("prevPage").classList.toggle("disabled", currentPage === 1);
+        document.getElementById("nextPage").classList.toggle("disabled", currentPage === totalPages);
+
+        // Generate dynamic page numbers
+        generatePageNumbers();
+    }
+
+    // Pagination event listeners
+    document.getElementById("prevPage").addEventListener("click", function () {
+        if (currentPage > 1) {
+            currentPage--;
+            displayOpportunities();
+        }
+    });
+
+    document.getElementById("nextPage").addEventListener("click", function () {
+        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            displayOpportunities();
+        }
+    });
+
+    // Initialize the display with all opportunities
+    displayOpportunities();
+});
+    </script>
+    <style>
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 100px;
+    }
+
+    .page-link {
+        padding: 8px 12px;
+        background-color: #13357B;  /* Dark background to match the page theme */
+        color: #fff;  /* White text */
+        border: none;  /* No border for the page numbers */
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .pagination button {
+        padding: 8px 15px;
+        background-color: #13357B;  /* Dark background to match the page theme */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+    }
+
+    </style>
+</body>
+</html>
