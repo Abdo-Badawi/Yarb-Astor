@@ -45,6 +45,25 @@ include_once '../Controllers/DBController.php';
             }
         }
 
+        public function logout(){
+            session_start(); // Always start the session first
+            
+            // Unset all session variables
+            $_SESSION = array();
+            
+            // Destroy the session cookie
+            if (isset($_COOKIE[session_name()])) {
+                setcookie(session_name(), '', time() - 3600, '/');
+            }
+            
+            // Destroy the session
+            session_destroy();
+            
+            // Redirect to login page
+            header("Location: login.php");
+            exit();
+        }
+
         public function register(User $user) {
             $this->db = new DBController();
             if ($this->db->openConnection()) {

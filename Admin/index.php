@@ -200,6 +200,10 @@
     <script src="assets/js/pcoded.min.js"></script>
     <!-- Custom Js -->
     <script src="assets/js/custom.js"></script>
+    <?php
+echo password_hash(1234, PASSWORD_DEFAULT);
+?>
+
 </body>
 
 </html>

@@ -43,6 +43,13 @@ class OpportunityController {
         $sql = "SELECT * FROM opportunity ORDER BY created_at DESC";
         return $this->db->select($sql) ?: [];
     }
+    
+
+    public function showAllOpportunitiesPage() {
+        $opportunities = $this->getAllOpportunities();
+        include '../Admin/opportunity-list.php'; // this is your opportunity list page
+    }
+    
 
     // Function to get a single opportunity by ID
     public function getOpportunityById(int $opportunity_id): ?Opportunity {

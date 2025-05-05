@@ -29,7 +29,7 @@
 						<label>Navigation</label>
 					</li>
 					<li class="nav-item">
-						<a href="index.html" class="nav-link active"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span class="pcoded-mtext">Dashboard</span></a>
+						<a href="index.php" class="nav-link active"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span class="pcoded-mtext">Dashboard</span></a>
 					</li>
 					
 					<!-- Homestay Opportunities -->
@@ -37,7 +37,7 @@
 						<label>Homestay Opportunities</label>
 					</li>
 					<li class="nav-item">
-						<a href="opportunity-list.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-list"></i></span><span class="pcoded-mtext">View Opportunities</span></a>
+						<a href="opportunity-list.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-list"></i></span><span class="pcoded-mtext">View Opportunities</span></a>
 					</li>
 					
 					<!-- Support Content -->
@@ -45,7 +45,7 @@
 						<label>Support</label>
 					</li>
 					<li class="nav-item">
-						<a href="support-content.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-message-square"></i></span><span class="pcoded-mtext">Support Content</span></a>
+						<a href="support-content.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-message-square"></i></span><span class="pcoded-mtext">Support Content</span></a>
 					</li>
 					
 					<!-- FAQ Management -->
@@ -53,7 +53,7 @@
 						<label>FAQ Management</label>
 					</li>
 					<li class="nav-item">
-						<a href="faq-management.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-help-circle"></i></span><span class="pcoded-mtext">Manage FAQs</span></a>
+						<a href="faq-management.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-help-circle"></i></span><span class="pcoded-mtext">Manage FAQs</span></a>
 					</li>
 					
 					<!-- Fee Management -->
@@ -61,10 +61,10 @@
 						<label>Fee Management</label>
 					</li>
 					<li class="nav-item">
-						<a href="traveler-fees.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-credit-card"></i></span><span class="pcoded-mtext">Traveler Fees</span></a>
+						<a href="traveler-fees.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-credit-card"></i></span><span class="pcoded-mtext">Traveler Fees</span></a>
 					</li>
 					<li class="nav-item">
-						<a href="payment-verification.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-check-circle"></i></span><span class="pcoded-mtext">Payment Verification</span></a>
+						<a href="payment-verification.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-check-circle"></i></span><span class="pcoded-mtext">Payment Verification</span></a>
 					</li>
 					
 					<!-- User Reports -->
@@ -72,7 +72,7 @@
 						<label>User Reports</label>
 					</li>
 					<li class="nav-item">
-						<a href="user-reports.html" class="nav-link"><span class="pcoded-micon"><i class="feather icon-flag"></i></span><span class="pcoded-mtext">Manage Reports</span></a>
+						<a href="user-reports.php" class="nav-link"><span class="pcoded-micon"><i class="feather icon-flag"></i></span><span class="pcoded-mtext">Manage Reports</span></a>
 					</li>
 				</ul>
 			</div>
