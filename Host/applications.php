@@ -1,17 +1,36 @@
 <?php
 session_start();
 require_once '../Controllers/ApplicationController.php';
-require_once '../Models/Application.php';
-use Models\Application;
 
-// Assuming the user is logged in and their ID is stored in session
-$hostID = isset($_SESSION['userID']) ? $_SESSION['userID'] : null;
+// Ensure user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header('Location: ../login.php');
+    exit;
+}
 
-if ($hostID) {
-    $applicationController = new ApplicationController();
-    $applications = $applicationController->getApplicationByOpportunityID($hostID);
-} else {
-    $applications = [];
+// Get the host ID from session
+$hostID = $_SESSION['userID'];
+
+// Initialize controller and get applications
+$applicationController = new ApplicationController();
+$applications = $applicationController->getApplicationByOpportunityID($hostID);
+
+// Process application status updates if form submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['application_id'])) {
+    $applicationId = (int)$_POST['application_id'];
+    $action = $_POST['action'];
+    
+    if ($action === 'accept') {
+        $applicationController->updateApplicationStatus($applicationId, 'accepted');
+        $_SESSION['success_message'] = "Application has been accepted successfully.";
+    } elseif ($action === 'reject') {
+        $applicationController->updateApplicationStatus($applicationId, 'rejected');
+        $_SESSION['success_message'] = "Application has been rejected.";
+    }
+    
+    // Redirect to refresh the page
+    header('Location: applications.php');
+    exit;
 }
 ?>
 
@@ -23,7 +42,7 @@ if ($hostID) {
     <title>HomeStays - Applications</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="homestays, cultural exchange, volunteer applications, host management" name="keywords">
-    <meta content="Manage volunteer applications for your homestay opportunities" name="description">
+    <meta content="Manage applications for your homestay opportunities" name="description">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,73 +82,160 @@ if ($hostID) {
         <div class="container py-5">
             <!-- Page Header -->
             <div class="text-center mb-5">
-                <h1 class="mb-3">My Applications</h1>
-                <p class="mb-0">
-                    Review and manage the applications submitted by travelers who are interested in your cultural exchange opportunities. 
-                </p>
+                <h1 class="mb-3">Manage Applications</h1>
+                <p class="mb-0">Review and respond to applications for your homestay opportunities</p>
             </div>
 
-            <!-- Filters -->
+            <!-- Success Message -->
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?php 
+                        echo $_SESSION['success_message'];
+                        unset($_SESSION['success_message']);
+                    ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Filter Options -->
             <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="row g-3 align-items-center">
-                                <div class="col-md-3">
-                                    <select class="form-select" id="statusFilter">
-                                        <option selected>Status</option>
-                                        <option value="accepted">Accepted</option>
-                                        <option value="rejected">Rejected</option>
-                                        <option value="pending">Pending</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <select class="form-select" id="categoryFilter">
-                                        <option selected>Category</option>
-                                        <option value="teaching">Teaching</option>
-                                        <option value="farming">Farming</option>
-                                        <option value="cooking">Cooking</option>
-                                        <option value="childcare">Childcare</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <input type="text" class="form-control" id="searchInput" placeholder="Search by title">
-                                </div>
-                                <div class="col-md-2">
-                                    <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search applications...">
+                        <button class="btn btn-primary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
+                </div>
+                <div class="col-md-6 d-flex justify-content-md-end">
+                    <select class="form-select" id="statusFilter" style="max-width: 200px;">
+                        <option value="all">All Applications</option>
+                        <option value="pending">Pending</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
                 </div>
             </div>
 
-
+            <!-- Applications List -->
             <div class="row g-4">
-                <?php
-                // Print the opportunities using the printOpportunities method
-                if (empty($applications)) {
-                    echo "<p>No applications found for this host.</p>";
-                } else {
-                    Application::printOpportunities($applications);
-                }
-                ?>
+                <?php if (empty($applications)): ?>
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+                                <h4 class="mb-3">No Applications Yet</h4>
+                                <p class="mb-4">You haven't received any applications for your opportunities yet.</p>
+                                <a href="create-opportunity.php" class="btn btn-primary">Create New Opportunity</a>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($applications as $application): ?>
+                        <div class="col-lg-6 application-item" data-status="<?php echo $application['status']; ?>">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <?php if (!empty($application['profile_picture'])): ?>
+                                            <img src="../uploads/profiles/<?php echo htmlspecialchars($application['profile_picture']); ?>" 
+                                                 class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="Profile Picture">
+                                        <?php else: ?>
+                                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div>
+                                            <h5 class="mb-0"><?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?></h5>
+                                            <p class="text-muted mb-0"><?php echo htmlspecialchars($application['traveler_location']); ?></p>
+                                        </div>
+                                        <span class="ms-auto badge bg-<?php 
+                                            echo $application['status'] === 'pending' ? 'warning text-dark' : 
+                                                ($application['status'] === 'accepted' ? 'success' : 'danger'); 
+                                        ?>">
+                                            <?php echo ucfirst(htmlspecialchars($application['status'])); ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="border-bottom pb-2 mb-2">Applied For</h6>
+                                        <p class="mb-1"><strong><?php echo htmlspecialchars($application['title']); ?></strong></p>
+                                        <p class="mb-1">
+                                            <span class="badge bg-primary"><?php echo ucfirst(htmlspecialchars($application['category'])); ?></span>
+                                            <small class="text-muted ms-2"><?php echo htmlspecialchars($application['opportunity_location']); ?></small>
+                                        </p>
+                                        <p class="mb-0">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i> 
+                                                <?php 
+                                                    echo date('M d, Y', strtotime($application['start_date'])) . ' - ' . 
+                                                         date('M d, Y', strtotime($application['end_date'])); 
+                                                ?>
+                                            </small>
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="border-bottom pb-2 mb-2">Application Message</h6>
+                                        <p class="mb-0 text-truncate"><?php echo htmlspecialchars($application['comment']); ?></p>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i> 
+                                            Applied <?php echo date('M d, Y', strtotime($application['applied_date'])); ?>
+                                        </small>
+                                        
+                                        <div>
+                                            <a href="view-application.php?id=<?php echo $application['application_id']; ?>" class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="fas fa-eye me-1"></i> View Details
+                                            </a>
+                                            
+                                            <?php if ($application['status'] === 'pending'): ?>
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        Action
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <form method="post">
+                                                                <input type="hidden" name="application_id" value="<?php echo $application['application_id']; ?>">
+                                                                <input type="hidden" name="action" value="accept">
+                                                                <button type="submit" class="dropdown-item text-success">
+                                                                    <i class="fas fa-check me-1"></i> Accept
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                        <li>
+                                                            <form method="post">
+                                                                <input type="hidden" name="application_id" value="<?php echo $application['application_id']; ?>">
+                                                                <input type="hidden" name="action" value="reject">
+                                                                <button type="submit" class="dropdown-item text-danger">
+                                                                    <i class="fas fa-times me-1"></i> Reject
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-
-            <!-- Pagination -->
-            <div class="pagination">
-                <button id="prevPage" class="btn btn-sm">&laquo; Prev</button>
-                <div id="pageNumbers" class="page-numbers"></div>
-                <button id="nextPage" class="btn btn-sm ">Next &raquo;</button>
-            </div>
-
-
         </div>
     </div>
     <!-- Applications End -->
 
     <!-- Footer Start -->
     <?php include '../Common/footer.php'; ?>
+    <!-- Footer End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-circle back-to-top"><i class="bi bi-arrow-up"></i></a>
 
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -137,174 +243,66 @@ if ($hostID) {
     <script src="../lib/wow/wow.min.js"></script>
     <script src="../lib/easing/easing.min.js"></script>
     <script src="../lib/waypoints/waypoints.min.js"></script>
-    <script src="../lib/counterup/counterup.min.js"></script>
     <script src="../lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="../lib/counterup/counterup.min.js"></script>
+    <script src="../lib/parallax/parallax.min.js"></script>
+    <script src="../lib/isotope/isotope.pkgd.min.js"></script>
+    <script src="../lib/lightbox/js/lightbox.min.js"></script>
 
     <!-- Template Javascript -->
     <script src="../js/main.js"></script>
+    
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
-    const opportunities = <?php echo json_encode($applications); ?>;
-
-    let filteredOpportunities = opportunities;
-    let currentPage = 1;
-    const itemsPerPage = 6;
-
-    // Function to display opportunities
-    function displayOpportunities() {
-        const start = (currentPage - 1) * itemsPerPage;
-        const end = currentPage * itemsPerPage;
-        const paginatedOpportunities = filteredOpportunities.slice(start, end);
-
-        // Clear existing opportunities
-        const opportunitiesContainer = document.querySelector(".row.g-4");
-        opportunitiesContainer.innerHTML = '';
-
-        // Loop through and display the filtered opportunities
-        paginatedOpportunities.forEach(opp => {
-            let statusText = opp.status.charAt(0).toUpperCase() + opp.status.slice(1);
-            let statusColor = (opp.status === "open") ? "bg-success text-white" :
-                              (opp.status === "closed") ? "bg-danger text-white" : 
-                              (opp.status === "cancelled") ? "bg-warning text-dark" : "bg-secondary text-white";
-
-            let opportunityHTML = `
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <img src="${opp.opportunity_photo || 'default_image.jpg'}" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
-                                <h5 class="card-title mb-0">${opp.title}</h5>
-                                <span class="badge ${statusColor}">${statusText}</span>
-                            </div>
-                            <div class="mb-3">
-                                <p class="mb-2"><i class="fa fa-clock me-2"></i>Created At: ${opp.created_at}</p>
-                                <p class="mb-2"><i class="bi bi-tags-fill me-2"></i> Category: ${opp.category}</p>
-                                <p class="mb-2"><i class="fa fa-location-arrow me-2"></i>Location: ${opp.location}</p>
-                                <p class="mb-2"><i class="bi bi-calendar-fill me-2"></i> Start Date: ${opp.start_date}</p>
-                                <p class="mb-2"><i class="bi bi-calendar-check-fill me-2"></i> End Date: ${opp.end_date}</p>
-                                <p class="mb-2"><i class="fa fa-tasks me-2"></i>Requirements: ${opp.requirements}</p>
-                                <p class="mb-2"><i class="fa fa-info-circle me-2"></i>Description: ${opp.description}</p>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <button class="btn btn-primary me-2 px-3">Edit</button>
-                                </div>
-                                <button class="btn btn-sm btn-danger">Mark Filled</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            opportunitiesContainer.innerHTML += opportunityHTML;
-        });
-
-        // Update pagination visibility and active status
-        updatePagination();
-    }
-
-    // Function to apply filters based on selected status and category
-    document.getElementById("applyFilters").addEventListener("click", function () {
-        const selectedStatus = document.getElementById("statusFilter").value;
-        const selectedCategory = document.getElementById("categoryFilter").value;
-
-        // Filter the opportunities based on selected status and category
-        const searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
-
-        filteredOpportunities = opportunities.filter(opp => {
-            const statusMatches = (selectedStatus === "Status" || opp.status.toLowerCase() === selectedStatus.toLowerCase());
-            const categoryMatches = (selectedCategory === "Category" || opp.category.toLowerCase() === selectedCategory.toLowerCase());
-            const titleMatches = opp.title.toLowerCase().includes(searchQuery);
-            return statusMatches && categoryMatches && titleMatches;
-        });
-
-
-        currentPage = 1;  // Reset to first page when filters are applied
-        displayOpportunities();
-    });
-
-    // Function to generate dynamic page numbers
-    function generatePageNumbers() {
-        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
-        const pageNumbersContainer = document.getElementById("pageNumbers");
-        
-        // Clear existing page numbers
-        pageNumbersContainer.innerHTML = '';
-
-        // Create page number buttons dynamically
-        for (let i = 1; i <= totalPages; i++) {
-            const pageNumber = document.createElement("span");
-            pageNumber.classList.add("page-link");
-            pageNumber.innerText = i;
-            pageNumber.addEventListener("click", function () {
-                currentPage = i;
-                displayOpportunities();
+        // Filter applications by status
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusFilter = document.getElementById('statusFilter');
+            const searchInput = document.getElementById('searchInput');
+            const applicationItems = document.querySelectorAll('.application-item');
+            
+            // Status filter
+            statusFilter.addEventListener('change', function() {
+                const selectedStatus = this.value;
+                
+                applicationItems.forEach(item => {
+                    if (selectedStatus === 'all' || item.dataset.status === selectedStatus) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
             });
-            pageNumbersContainer.appendChild(pageNumber);
-        }
-    }
-
-    // Update pagination links based on the filtered opportunities
-    function updatePagination() {
-        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
-
-        // Update Prev/Next buttons visibility
-        document.getElementById("prevPage").classList.toggle("disabled", currentPage === 1);
-        document.getElementById("nextPage").classList.toggle("disabled", currentPage === totalPages);
-
-        // Generate dynamic page numbers
-        generatePageNumbers();
-    }
-
-    // Pagination event listeners
-    document.getElementById("prevPage").addEventListener("click", function () {
-        if (currentPage > 1) {
-            currentPage--;
-            displayOpportunities();
-        }
-    });
-
-    document.getElementById("nextPage").addEventListener("click", function () {
-        const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
-            displayOpportunities();
-        }
-    });
-
-    // Initialize the display with all opportunities
-    displayOpportunities();
-});
+            
+            // Search filter
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                applicationItems.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Confirmation for accept/reject actions
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const action = this.querySelector('input[name="action"]').value;
+                    const confirmMessage = action === 'accept' ? 
+                        'Are you sure you want to accept this application?' : 
+                        'Are you sure you want to reject this application?';
+                    
+                    if (!confirm(confirmMessage)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
     </script>
-    <style>
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        margin-top: 100px;
-    }
-
-    .page-link {
-        padding: 8px 12px;
-        background-color: #13357B;  /* Dark background to match the page theme */
-        color: #fff;  /* White text */
-        border: none;  /* No border for the page numbers */
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s, color 0.3s;
-    }
-
-    .pagination button {
-        padding: 8px 15px;
-        background-color: #13357B;  /* Dark background to match the page theme */
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s;
-    }
-
-    </style>
 </body>
+
 </html>
+

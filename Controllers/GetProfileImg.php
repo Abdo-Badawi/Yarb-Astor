@@ -1,29 +1,49 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "homestay");
+include_once 'DBController.php';
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// Get user_id from query parameter
+$userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+
+if ($userId <= 0) {
+    header("HTTP/1.0 400 Bad Request");
+    exit;
 }
 
-$userId = intval($_GET['user_id'] ?? 0);
+// Connect to database
+$db = new DBController();
+if (!$db->openConnection()) {
+    header("HTTP/1.0 500 Internal Server Error");
+    exit;
+}
 
-$stmt = $conn->prepare("SELECT profile_picture FROM users WHERE user_id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$stmt->store_result();
+// Get profile picture filename
+$query = "SELECT profile_picture FROM users WHERE user_id = ?";
+$params = [$userId];
+$result = $db->selectPrepared($query, "i", $params);
 
-$stmt->bind_result($imageData);
-$stmt->fetch();
+$db->closeConnection();
 
-if (!empty($imageData)) {
-    header("Content-Type: image/jpeg"); // Change if your images are PNG
-    echo $imageData;
+if (!$result || empty($result[0]['profile_picture'])) {
+    // Return default profile image
+    $defaultImage = "../img/default-profile.jpg";
+    header("Content-Type: image/jpeg");
+    readfile($defaultImage);
+    exit;
+}
+
+// Get the profile picture path
+$imagePath = "../uploads/" . $result[0]['profile_picture'];
+
+// Check if file exists
+if (file_exists($imagePath)) {
+    $imageInfo = getimagesize($imagePath);
+    header("Content-Type: " . $imageInfo['mime']);
+    readfile($imagePath);
 } else {
-    // Optional: fallback image
-    header("Content-Type: image/png");
-    readfile("../img/download.png");
+    // Return default profile image if file not found
+    $defaultImage = "../img/default-profile.jpg";
+    header("Content-Type: image/jpeg");
+    readfile($defaultImage);
 }
-
-$stmt->close();
-$conn->close();
 ?>
+

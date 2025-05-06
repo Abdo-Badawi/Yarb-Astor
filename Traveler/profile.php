@@ -144,7 +144,6 @@ if (!$userData) {
                             <form method="post" action="../Common/logout.php" style="text-align: right; margin-top: 20px;">
                                 <button type="submit" class="btn btn-danger">Logout</button>
                             </form>
-
                         </div>
                     </div>
                 </div>
@@ -162,3 +161,4 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+

@@ -36,5 +36,67 @@ class ProfileController {
         // If no user data found, return null
         return $userData ? $userData[0] : null;
     }
+
+    public function updateUserProfile($userId, $userData) {
+        if (!$this->db->openConnection()) {
+            return false;
+        }
+        
+        try {
+            // Start transaction
+            $this->db->conn->begin_transaction();
+            
+            // Update users table
+            $userQuery = "UPDATE users SET 
+                         first_name = ?,
+                         last_name = ?,
+                         email = ?,
+                         phone_number = ?, 
+                         profile_picture = ? 
+                         WHERE user_id = ?";
+            $userParams = [
+                $userData['first_name'],
+                $userData['last_name'],
+                $userData['email'],
+                $userData['phone_number'],
+                $userData['profile_picture'] ?? null,
+                $userId
+            ];
+            
+            $userResult = $this->db->insert($userQuery, "sssssi", $userParams);
+            
+            // Update hosts table
+            $hostQuery = "UPDATE hosts SET 
+                         preferred_language = ?, 
+                         bio = ?, 
+                         location = ?, 
+                         property_type = ? 
+                         WHERE host_id = ?";
+            $hostParams = [
+                $userData['preferred_language'],
+                $userData['bio'],
+                $userData['location'],
+                $userData['property_type'],
+                $userId
+            ];
+            
+            $hostResult = $this->db->insert($hostQuery, "ssssi", $hostParams);
+            
+            if ($userResult && $hostResult) {
+                $this->db->conn->commit();
+                return true;
+            } else {
+                throw new Exception("Failed to update profile");
+            }
+        } catch (Exception $e) {
+            $this->db->conn->rollback();
+            return false;
+        } finally {
+            $this->db->closeConnection();
+        }
+    }
 }
 ?>
+
+
+

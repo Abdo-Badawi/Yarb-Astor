@@ -1,3 +1,24 @@
+<?php
+session_start();
+require_once '../Controllers/DashboardController.php';
+
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header('Location: ../login.php');
+    exit;
+}
+
+$hostID = $_SESSION['userID'];
+$dashboardController = new DashboardController();
+$dashboardData = $dashboardController->getHostDashboardData($hostID);
+
+// Extract dashboard data
+$stats = $dashboardData['stats'];
+$recentApplications = $dashboardData['recentApplications'];
+$recentMessages = $dashboardData['recentMessages'];
+$activeOpportunities = $dashboardData['activeOpportunities'];
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -44,12 +65,17 @@
     <!-- Dashboard Start -->
     <div class="container-fluid py-5">
         <div class="container py-5">
+            <div class="text-center mb-5">
+                <h1 class="mb-3">Host Dashboard</h1>
+                <p class="mb-0">Welcome back! Here's an overview of your homestay activities</p>
+            </div>
+            
             <!-- Analytics Overview -->
             <div class="row g-4 mb-4">
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
-                            <h3 class="text-primary mb-2">245</h3>
+                            <h3 class="text-primary mb-2"><?php echo $stats['profileViews']; ?></h3>
                             <p class="mb-0">Profile Views</p>
                         </div>
                     </div>
@@ -57,7 +83,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
-                            <h3 class="text-primary mb-2">12</h3>
+                            <h3 class="text-primary mb-2"><?php echo $stats['activeApplications']; ?></h3>
                             <p class="mb-0">Active Applications</p>
                         </div>
                     </div>
@@ -65,7 +91,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
-                            <h3 class="text-primary mb-2">8</h3>
+                            <h3 class="text-primary mb-2"><?php echo $stats['unreadMessages']; ?></h3>
                             <p class="mb-0">Unread Messages</p>
                         </div>
                     </div>
@@ -73,173 +99,150 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
-                            <h3 class="text-primary mb-2">4.8</h3>
-                            <p class="mb-0">Average Rating</p>
+                            <h3 class="text-primary mb-2"><?php echo $stats['activeOpportunities']; ?></h3>
+                            <p class="mb-0">Active Opportunities</p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Current Opportunities -->
-            <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0">Current Opportunities</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Position</th>
-                                            <th>Status</th>
-                                            <th>Applications</th>
-                                            <th>Duration</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>English Teacher</td>
-                                            <td><span class="badge bg-success">Available</span></td>
-                                            <td>5 pending</td>
-                                            <td>2 months</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-primary">View</button>
-                                                <button class="btn btn-sm btn-danger">Mark Filled</button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Childcare Helper</td>
-                                            <td><span class="badge bg-danger">Filled</span></td>
-                                            <td>3 pending</td>
-                                            <td>3 months</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-primary">View</button>
-                                                <button class="btn btn-sm btn-success">Mark Available</button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Garden Assistant</td>
-                                            <td><span class="badge bg-success">Available</span></td>
-                                            <td>2 pending</td>
-                                            <td>1 month</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-primary">View</button>
-                                                <button class="btn btn-sm btn-danger">Mark Filled</button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Applications -->
-            <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0">Recent Applications</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-4">
-                                <div class="col-lg-4">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center mb-3">
-                                                <img src="../img/volunteer-1.jpg" class="rounded-circle me-3" style="width: 50px; height: 50px;" alt="Volunteer">
-                                                <div>
-                                                    <h6 class="mb-0">Sarah Johnson</h6>
-                                                    <small class="text-muted">English Teacher</small>
-                                                </div>
-                                            </div>
-                                            <p class="mb-3">Experienced English teacher looking for cultural exchange opportunity.</p>
-                                            <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-success">Accept</button>
-                                                <button class="btn btn-sm btn-danger">Decline</button>
-                                                <button class="btn btn-sm btn-primary">View Profile</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center mb-3">
-                                                <img src="../img/volunteer-2.jpg" class="rounded-circle me-3" style="width: 50px; height: 50px;" alt="Volunteer">
-                                                <div>
-                                                    <h6 class="mb-0">Michael Chen</h6>
-                                                    <small class="text-muted">Garden Assistant</small>
-                                                </div>
-                                            </div>
-                                            <p class="mb-3">Passionate about gardening and cultural exchange.</p>
-                                            <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-success">Accept</button>
-                                                <button class="btn btn-sm btn-danger">Decline</button>
-                                                <button class="btn btn-sm btn-primary">View Profile</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center mb-3">
-                                                <img src="../img/volunteer-3.jpg" class="rounded-circle me-3" style="width: 50px; height: 50px;" alt="Volunteer">
-                                                <div>
-                                                    <h6 class="mb-0">Emma Wilson</h6>
-                                                    <small class="text-muted">Childcare Helper</small>
-                                                </div>
-                                            </div>
-                                            <p class="mb-3">Experienced with children and interested in cultural exchange.</p>
-                                            <div class="d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-success">Accept</button>
-                                                <button class="btn btn-sm btn-danger">Decline</button>
-                                                <button class="btn btn-sm btn-primary">View Profile</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Messages -->
+            
+            <!-- Main Dashboard Content -->
             <div class="row g-4">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0">Recent Messages</h5>
+                <!-- Active Opportunities -->
+                <div class="col-lg-6 col-md-12">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Active Opportunities</h5>
+                                <a href="opportunities.php" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div class="list-group">
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Sarah Johnson</h6>
-                                        <small>3 mins ago</small>
+                            <?php if (empty($activeOpportunities)): ?>
+                                <p class="text-center">No active opportunities found.</p>
+                                <div class="text-center mt-3">
+                                    <a href="create-opportunity.php" class="btn btn-primary">Create New Opportunity</a>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($activeOpportunities as $opportunity): ?>
+                                    <div class="d-flex mb-3 pb-3 border-bottom">
+                                        <div class="flex-shrink-0">
+                                            <?php if ($opportunity['opportunity_photo']): ?>
+                                                <img src="../uploads/opportunities/<?php echo $opportunity['opportunity_photo']; ?>" class="rounded" width="80" height="80" alt="Opportunity">
+                                            <?php else: ?>
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                                    <i class="fas fa-home text-primary" style="font-size: 2rem;"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="ms-3">
+                                            <h6 class="mb-1"><?php echo htmlspecialchars($opportunity['title']); ?></h6>
+                                            <p class="small mb-1"><i class="fas fa-map-marker-alt me-1"></i> <?php echo htmlspecialchars($opportunity['location']); ?></p>
+                                            <p class="small mb-1"><i class="fas fa-calendar me-1"></i> <?php echo date('M d, Y', strtotime($opportunity['start_date'])); ?> - <?php echo date('M d, Y', strtotime($opportunity['end_date'])); ?></p>
+                                            <p class="small mb-0"><i class="fas fa-users me-1"></i> <?php echo $opportunity['application_count']; ?> applications</p>
+                                        </div>
                                     </div>
-                                    <p class="mb-1">Hi! I'm very interested in the English teaching position...</p>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Michael Chen</h6>
-                                        <small>1 hour ago</small>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Applications -->
+                <div class="col-lg-6 col-md-12">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Recent Applications</h5>
+                                <a href="applications.php" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <?php if (empty($recentApplications)): ?>
+                                <p class="text-center">No recent applications found.</p>
+                            <?php else: ?>
+                                <?php foreach ($recentApplications as $application): ?>
+                                    <div class="d-flex mb-3 pb-3 border-bottom">
+                                        <div class="flex-shrink-0">
+                                            <?php if ($application['profile_picture']): ?>
+                                                <img src="../uploads/profiles/<?php echo $application['profile_picture']; ?>" class="rounded-circle" width="50" height="50" alt="Applicant">
+                                            <?php else: ?>
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                    <i class="fas fa-user text-primary"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="ms-3">
+                                            <h6 class="mb-1"><?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?></h6>
+                                            <p class="small mb-1">Applied for: <?php echo htmlspecialchars($application['opportunity_title']); ?></p>
+                                            <p class="small mb-1">Status: <span class="badge bg-<?php echo $application['status'] === 'pending' ? 'warning' : ($application['status'] === 'accepted' ? 'success' : 'danger'); ?>"><?php echo ucfirst($application['status']); ?></span></p>
+                                            <p class="small mb-0 text-muted"><?php echo date('M d, Y', strtotime($application['applied_date'])); ?></p>
+                                        </div>
                                     </div>
-                                    <p class="mb-1">Thank you for considering my application...</p>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Emma Wilson</h6>
-                                        <small>2 hours ago</small>
-                                    </div>
-                                    <p class="mb-1">I have some questions about the childcare position...</p>
-                                </a>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Messages -->
+                <div class="col-lg-6 col-md-12">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Recent Messages</h5>
+                                <a href="messages.php" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <?php if (empty($recentMessages)): ?>
+                                <p class="text-center">No recent messages found.</p>
+                            <?php else: ?>
+                                <div class="list-group">
+                                    <?php foreach ($recentMessages as $message): ?>
+                                        <a href="messages.php?conversation=<?php echo $message['sender_id']; ?>" class="list-group-item list-group-item-action <?php echo $message['is_read'] ? '' : 'bg-light'; ?>">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1"><?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?></h6>
+                                                <small><?php echo date('g:i a', strtotime($message['timestamp'])); ?></small>
+                                            </div>
+                                            <p class="mb-1"><?php echo htmlspecialchars(substr($message['content'], 0, 100)) . (strlen($message['content']) > 100 ? '...' : ''); ?></p>
+                                            <small class="text-muted"><?php echo date('M d, Y', strtotime($message['timestamp'])); ?></small>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="col-lg-6 col-md-12">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <a href="create-opportunity.php" class="btn btn-primary w-100 mb-3">
+                                        <i class="fas fa-plus-circle me-2"></i> Create Opportunity
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <a href="profile.php" class="btn btn-outline-primary w-100 mb-3">
+                                        <i class="fas fa-user-edit me-2"></i> Edit Profile
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <a href="applications.php" class="btn btn-outline-primary w-100 mb-3">
+                                        <i class="fas fa-clipboard-list me-2"></i> Review Applications
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <a href="messages.php" class="btn btn-outline-primary w-100 mb-3">
+                                        <i class="fas fa-envelope me-2"></i> Check Messages
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

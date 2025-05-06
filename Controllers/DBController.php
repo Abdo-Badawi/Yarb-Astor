@@ -106,6 +106,34 @@
             $stmt->close();
             return $result;
         }
+        
+        // Function to update records
+        public function update(string $query, string $types, array $params): bool {
+            if (!$this->conn) {
+                error_log("DB Error: No connection available for update.");
+                return false;
+            }
+            
+            $stmt = $this->conn->prepare($query);
+            if (!$stmt) {
+                error_log("DB Error: Failed to prepare update statement. " . $this->conn->error . " | Query: " . $query);
+                return false;
+            }
+            
+            if (!$stmt->bind_param($types, ...$params)) {
+                error_log("DB Error: Failed to bind update parameters. " . $stmt->error);
+                $stmt->close();
+                return false;
+            }
+            
+            $result = $stmt->execute();
+            if (!$result) {
+                error_log("DB Error: Failed to execute update statement. " . $stmt->error);
+            }
+            
+            $stmt->close();
+            return $result;
+        }
                 
     }
 ?>

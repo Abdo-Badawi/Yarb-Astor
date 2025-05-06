@@ -1,67 +1,86 @@
 <?php
-
-// Include necessary files
-include_once '../Controllers/DBController.php';
-include_once '../Models/Application.php';
+require_once 'DBController.php';
+require_once '../Models/Application.php';
 use Models\Application;
 
 class ApplicationController {
-
     private $db;
-
-    // Constructor to initialize DBController
+    
     public function __construct() {
-        $this->db = new DBController(); // Instantiate DBController to manage database connections
-        $this->db->openConnection();
+        $this->db = new DBController();
     }
-
-    public function getApplicationByOpportunityID($hostID) {
-        $query = "SELECT
-            opportunity.title, 
-            opportunity.opportunity_photo, 
-            opportunity.category, 
-            opportunity.location AS opportunity_location, 
-            opportunity.start_date, 
-            opportunity.end_date, 
-            opportunity.requirements,
-            opportunity.description,
-            opportunity.created_at,
-
-
-        
-            applications.application_id,
-            applications.traveler_id,
-            applications.status,
-            applications.applied_date,
-            applications.comment,            
-        
-            users.email,
-            users.gender,
-            users.first_name,
-            users.last_name,
-            users.phone_number,
-        
-            traveler.language_spoken,
-            traveler.rate,
-            traveler.location AS traveler_location
-        
-            FROM opportunity
-            
-            JOIN applications ON opportunity.opportunity_id = applications.opportunity_id
-            
-            JOIN users ON applications.traveler_id = users.user_id
-            
-            JOIN traveler ON applications.traveler_id = traveler.traveler_id
-            
-            WHERE opportunity.host_id = ?";
     
-    
+    /**
+     * Get applications for opportunities created by a host
+     * 
+     * @param int $hostID The host ID
+     * @return array List of applications with traveler and opportunity details
+     */
+    public function getApplicationByOpportunityID(int $hostID): array {
+        $sql = "SELECT a.*, 
+                o.title, o.category, o.location as opportunity_location, o.start_date, o.end_date, o.opportunity_photo,
+                u.first_name, u.last_name, u.email, u.phone_number, u.profile_picture, u.gender,
+                t.language_spoken, t.location as traveler_location
+                FROM applications a
+                JOIN opportunity o ON a.opportunity_id = o.opportunity_id
+                JOIN users u ON a.traveler_id = u.user_id
+                JOIN traveler t ON a.traveler_id = t.traveler_id
+                WHERE o.host_id = ?
+                ORDER BY a.applied_date DESC";
+        
         $params = [$hostID];
+        
         $this->db->openConnection();
-        $result = $this->db->selectPrepared($query, "s", $params); // "s" for string
+        $result = $this->db->selectPrepared($sql, "i", $params);
         $this->db->closeConnection();
+        
+        return $result ?: [];
+    }
+    
+    /**
+     * Get application details by ID
+     * 
+     * @param int $applicationID The application ID
+     * @return array|null Application details or null if not found
+     */
+    public function getApplicationByID(int $applicationID): ?array {
+        $sql = "SELECT a.*, 
+                o.title, o.category, o.description, o.location as opportunity_location, o.start_date, o.end_date, o.opportunity_photo, o.requirements, o.host_id,
+                u.first_name, u.last_name, u.email, u.phone_number, u.profile_picture, u.gender, u.date_of_birth,
+                t.language_spoken, t.location as traveler_location, t.bio, t.skill as skills, t.skill as interests, t.skill as experience_level
+                FROM applications a
+                JOIN opportunity o ON a.opportunity_id = o.opportunity_id
+                JOIN users u ON a.traveler_id = u.user_id
+                JOIN traveler t ON a.traveler_id = t.traveler_id
+                WHERE a.application_id = ?";
+        
+        $params = [$applicationID];
+        
+        $this->db->openConnection();
+        $result = $this->db->selectPrepared($sql, "i", $params);
+        $this->db->closeConnection();
+        
+        return $result[0] ?? null;
+    }
+    
+    /**
+     * Update application status
+     * 
+     * @param int $applicationID The application ID
+     * @param string $status The new status ('accepted', 'rejected', 'pending')
+     * @return bool True if update successful, false otherwise
+     */
+    public function updateApplicationStatus(int $applicationID, string $status): bool {
+        $sql = "UPDATE applications SET status = ? WHERE application_id = ?";
+        
+        $params = [$status, $applicationID];
+        
+        $this->db->openConnection();
+        $result = $this->db->update($sql, "si", $params);
+        $this->db->closeConnection();
+        
         return $result;
     }
-    
-
 }
+?>
+
