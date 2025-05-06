@@ -220,7 +220,7 @@
                                     <div class="col-xl-6 col-md-6">
                                         <div class="opportunity-card">
                                             <div class="opportunity-header">
-                                                <img src="<?= htmlspecialchars($opportunity['opportunity_photo']) ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
+                                                <img src="<?= isset($opportunity['opportunity_photo']) ? htmlspecialchars($opportunity['opportunity_photo']) : 'assets/images/default-opportunity.jpg' ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
                                                 <h6 class="opportunity-title"><?= htmlspecialchars($opportunity['title']) ?></h6>
                                                 <span class="badge badge-success"><?= ucfirst(htmlspecialchars($opportunity['status'])) ?></span>
                                             </div>
@@ -234,29 +234,37 @@
                                                 </div>
                                                 <div class="detail-item">
                                                     <span class="detail-label text-primary font-weight-bold">Created At:</span>
-                                                    <span class="detail-value"><?= (new DateTime($opportunity['created_at']))->format('M d, Y') ?></span>
+                                                    <span class="detail-value"><?= isset($opportunity['created_at']) ? (new DateTime($opportunity['created_at']))->format('M d, Y') : 'N/A' ?></span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <span class="detail-label text-primary font-weight-bold">Duration:</span>
-                                                    <span class="detail-value"><?= date_diff(new DateTime($opportunity['start_date']), new DateTime($opportunity['end_date']))->format('%a days') ?></span>
+                                                    <span class="detail-value">
+                                                        <?php
+                                                        if (isset($opportunity['start_date']) && isset($opportunity['end_date'])) {
+                                                            echo date_diff(new DateTime($opportunity['start_date']), new DateTime($opportunity['end_date']))->format('%a days');
+                                                        } else {
+                                                            echo 'N/A';
+                                                        }
+                                                        ?>
+                                                    </span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <span class="detail-label text-primary font-weight-bold">Start Date:</span>
-                                                    <span class="detail-value"><?= (new DateTime($opportunity['start_date']))->format('M d, Y') ?></span>
+                                                    <span class="detail-value"><?= isset($opportunity['start_date']) ? (new DateTime($opportunity['start_date']))->format('M d, Y') : 'N/A' ?></span>
                                                 </div>
                                                 <div class="detail-item">
                                                     <span class="detail-label text-primary font-weight-bold">End Date:</span>
-                                                    <span class="detail-value"><?= (new DateTime($opportunity['end_date']))->format('M d, Y') ?></span>
+                                                    <span class="detail-value"><?= isset($opportunity['end_date']) ? (new DateTime($opportunity['end_date']))->format('M d, Y') : 'N/A' ?></span>
                                                 </div>
                                             </div>
                                             <div class="opportunity-requirements">
-                                                <strong>Requirements:</strong> <?= htmlspecialchars($opportunity['requirements']) ?>
+                                                <strong>Requirements:</strong> <?= isset($opportunity['requirements']) ? htmlspecialchars($opportunity['requirements']) : 'No specific requirements' ?>
                                             </div>
                                             <div class="opportunity-description">
-                                                <strong>Description:</strong> <?= htmlspecialchars($opportunity['description']) ?>
+                                                <strong>Description:</strong> <?= isset($opportunity['description']) ? htmlspecialchars($opportunity['description']) : 'No description available' ?>
                                             </div>
                                             <div class="opportunity-actions">
-                                                <button class="btn btn-danger">Delete</button>
+                                                <button class="btn btn-danger" onclick="deleteOpportunity(<?= $opportunity['opportunity_id'] ?>)">Delete</button>
                                             </div>
                                         </div>
                                     </div>
@@ -312,6 +320,29 @@
                 searchOpportunities();
             }
         });
+
+        function deleteOpportunity(opportunityId) {
+            if (confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
+                fetch('opportunity-delete.php?id=' + opportunityId, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Opportunity deleted successfully!');
+                        // Remove the card from the DOM
+                        const card = document.querySelector(`button[onclick="deleteOpportunity(${opportunityId})"]`).closest('.col-xl-6');
+                        card.remove();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the opportunity.');
+                });
+            }
+        }
     </script>
 </body>
 </html>
