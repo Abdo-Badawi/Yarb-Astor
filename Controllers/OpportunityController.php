@@ -137,39 +137,8 @@ class OpportunityController {
         return $result ?: [];
     }
 
-
-    // Function to get all opportunities for admin
-    public function getAllOpportunities(): array {
-        $sql = "SELECT o.*, u.first_name, u.last_name
-                FROM opportunity o
-                JOIN users u ON o.host_id = u.user_id
-                ORDER BY o.created_at DESC";
-
-        $this->db->openConnection();
-        $result = $this->db->select($sql);
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
     // Function to delete an opportunity
     public function deleteOpportunity(int $opportunityId): bool {
-        // First delete any applications for this opportunity
-        $sqlDeleteApplications = "DELETE FROM applications WHERE opportunity_id = ?";
-
-        $this->db->openConnection();
-        $this->db->insert($sqlDeleteApplications, "i", [$opportunityId]);
-
-        // Then delete the opportunity
-        $sqlDeleteOpportunity = "DELETE FROM opportunity WHERE opportunity_id = ?";
-        $result = $this->db->insert($sqlDeleteOpportunity, "i", [$opportunityId]);
-        $this->db->closeConnection();
-
-        return $result;
-    }
-
-    // Function to mark an opportunity as deleted
-    public function markOpportunityAsDeleted(int $opportunityId): bool {
         $sql = "UPDATE opportunity SET status = 'deleted' WHERE opportunity_id = ?";
         
         $params = [$opportunityId];
@@ -279,6 +248,5 @@ class OpportunityController {
             return false;
         }
     }
-
 }
 ?>
