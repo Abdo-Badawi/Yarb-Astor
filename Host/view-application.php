@@ -1,5 +1,11 @@
 <?php
 session_start();
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
 require_once '../Controllers/ApplicationController.php';
 require_once '../Controllers/MessageController.php';
 
@@ -232,7 +238,7 @@ $appliedDate = date('M d, Y', strtotime($application['applied_date']));
                             </div>
                             
                             <div class="text-center mt-4">
-                                <a href="messages.php?user=<?php echo $application['traveler_id']; ?>" class="btn btn-primary">
+                                <a href="messages.php?traveler_id=<?php echo $application['traveler_id']; ?>" class="btn btn-primary">
                                     <i class="fas fa-envelope me-1"></i> Message Traveler
                                 </a>
                             </div>
@@ -382,3 +388,6 @@ $appliedDate = date('M d, Y', strtotime($application['applied_date']));
 </body>
 
 </html>
+
+
+

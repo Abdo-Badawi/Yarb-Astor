@@ -167,6 +167,24 @@ class Opportunity {
         return true;
     }
 
+    /**
+     * Get the image path for the opportunity
+     * 
+     * @return string|null The image path
+     */
+    public function getImagePath(): ?string {
+        return $this->opportunityPhoto;
+    }
+    
+    /**
+     * Set the image path for the opportunity
+     * 
+     * @param string|null $imagePath The image path
+     */
+    public function setImagePath(?string $imagePath): void {
+        $this->opportunityPhoto = $imagePath;
+    }
+
 
     public static function printOpportunities($opportunities) {
         // Check if the opportunities array is empty

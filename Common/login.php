@@ -17,6 +17,11 @@ if(isset($_POST['email']) && isset($_POST['password'])) {
             if(isset($_SESSION['email'])){
                 session_start();
             }
+            
+            // Set auth token for secure session
+            $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+            
+            // Redirect to appropriate dashboard based on user type
             if($_SESSION['userType'] == 'traveler'){
                 header("Location: ../Traveler/index.php");
             }

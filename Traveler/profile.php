@@ -1,5 +1,15 @@
 <?php
 session_start();
+// Check if user is logged in and is a traveler
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
 
 // Include the ProfileController to handle the logic
 include_once '../Controllers/TravelerProfileController.php';
@@ -132,17 +142,20 @@ if (!$userData) {
                                         </div>                                        <div class="col-md-6">
                                             <label class="form-label">Languages Spoken</label>
                                             <input type="text" class="form-control" value="<?= htmlspecialchars($userData['language_spoken']) ?>" readonly>
-                                        </div>                                        
+                                        </div>
                                     </div>
                                 </form>
                             </div>
                         </div>
                         <!-- Example in HTML or PHP page -->
                         <div class="d-flex justify-content-end gap-2">
+                            <a href="messages.php" class="btn btn-info">Messages</a>
                             <a href="edit_profile.php" class="btn btn-primary">Edit Profile</a>
 
                             <form method="post" action="../Common/logout.php" style="text-align: right; margin-top: 20px;">
-                                <button type="submit" class="btn btn-danger">Logout</button>
+                                <button type="submit" class="btn btn-danger">
+                                    Logout
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -161,4 +174,6 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+
+
 

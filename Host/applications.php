@@ -1,12 +1,12 @@
 <?php
 session_start();
-require_once '../Controllers/ApplicationController.php';
-
-// Ensure user is logged in and is a host
+// Check if user is logged in and is a host
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
-    header('Location: ../login.php');
+    header("Location: ../Common/login.php");
     exit;
 }
+
+require_once '../Controllers/ApplicationController.php';
 
 // Get the host ID from session
 $hostID = $_SESSION['userID'];
@@ -305,4 +305,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 </body>
 
 </html>
+
 

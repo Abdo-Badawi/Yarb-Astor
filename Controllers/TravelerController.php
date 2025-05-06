@@ -1,27 +1,27 @@
 <?php
 require_once 'DBController.php';
 
-class HostController {
+class TravelerController {
     private $db;
     
     public function __construct() {
         $this->db = new DBController();
     }
     
-    // Get host by ID
-    public function getHostById(int $hostId): ?array {
-        $sql = "SELECT * FROM users WHERE user_id = ? AND user_type = 'host'";
+    // Get traveler by ID
+    public function getTravelerById(int $travelerId): ?array {
+        $sql = "SELECT * FROM users WHERE user_id = ? AND user_type = 'traveler'";
         
         $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "i", [$hostId]);
+        $result = $this->db->selectPrepared($sql, "i", [$travelerId]);
         $this->db->closeConnection();
         
         return $result ? $result[0] : null;
     }
     
-    // Get all hosts
-    public function getAllHosts(): array {
-        $sql = "SELECT * FROM users WHERE user_type = 'host'";
+    // Get all travelers
+    public function getAllTravelers(): array {
+        $sql = "SELECT * FROM users WHERE user_type = 'traveler'";
         
         $this->db->openConnection();
         $result = $this->db->select($sql);
@@ -30,8 +30,8 @@ class HostController {
         return $result ?: [];
     }
     
-    // Update host profile
-    public function updateHostProfile(int $hostId, array $data): bool {
+    // Update traveler profile
+    public function updateTravelerProfile(int $travelerId, array $data): bool {
         $sql = "UPDATE users SET 
                 first_name = ?, 
                 last_name = ?, 
@@ -39,7 +39,7 @@ class HostController {
                 phone_number = ?, 
                 date_of_birth = ?, 
                 gender = ? 
-                WHERE user_id = ? AND user_type = 'host'";
+                WHERE user_id = ? AND user_type = 'traveler'";
         
         $params = [
             $data['first_name'],
@@ -48,7 +48,7 @@ class HostController {
             $data['phone_number'],
             $data['date_of_birth'],
             $data['gender'],
-            $hostId
+            $travelerId
         ];
         
         $this->db->openConnection();
@@ -58,10 +58,10 @@ class HostController {
         return $result;
     }
     
-    // Create new host
-    public function createHost(array $data): int {
+    // Create new traveler
+    public function createTraveler(array $data): int {
         $sql = "INSERT INTO users (user_type, first_name, last_name, email, password, phone_number, date_of_birth, gender, created_at) 
-                VALUES ('host', ?, ?, ?, ?, ?, ?, ?, NOW())";
+                VALUES ('traveler', ?, ?, ?, ?, ?, ?, ?, NOW())";
         
         $params = [
             $data['first_name'],
@@ -81,9 +81,9 @@ class HostController {
         return $insertId;
     }
     
-    // Authenticate host
-    public function authenticateHost(string $email, string $password): ?array {
-        $sql = "SELECT * FROM users WHERE email = ? AND user_type = 'host'";
+    // Authenticate traveler
+    public function authenticateTraveler(string $email, string $password): ?array {
+        $sql = "SELECT * FROM users WHERE email = ? AND user_type = 'traveler'";
         
         $this->db->openConnection();
         $result = $this->db->selectPrepared($sql, "s", [$email]);
@@ -96,47 +96,17 @@ class HostController {
         return null;
     }
     
-    // Delete host
-    public function deleteHost(int $hostId): bool {
-        $sql = "DELETE FROM users WHERE user_id = ? AND user_type = 'host'";
+    // Delete traveler
+    public function deleteTraveler(int $travelerId): bool {
+        $sql = "DELETE FROM users WHERE user_id = ? AND user_type = 'traveler'";
         
         $this->db->openConnection();
-        $result = $this->db->delete($sql, "i", [$hostId]);
+        $result = $this->db->delete($sql, "i", [$travelerId]);
         $this->db->closeConnection();
         
         return $result;
     }
-    
-    // Get hosts by location
-    public function getHostsByLocation(string $location): array {
-        $sql = "SELECT * FROM users WHERE user_type = 'host' AND location LIKE ?";
-        
-        $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "s", ["%$location%"]);
-        $this->db->closeConnection();
-        
-        return $result ?: [];
-    }
-    
-    // Method to get host reviews
-    public function getHostReviews($hostId) {
-        $sql = "SELECT r.*, u.first_name, u.last_name, u.profile_picture 
-                FROM reviews r 
-                JOIN users u ON r.reviewer_id = u.user_id 
-                WHERE r.host_id = ? 
-                ORDER BY r.created_at DESC";
-        
-        $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "i", [$hostId]);
-        $this->db->closeConnection();
-        
-        return $result ?: [];
-    }
 }
 ?>
-
-
-
-
 
 

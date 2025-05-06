@@ -1,5 +1,11 @@
 <?php
 session_start();
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
 require_once '../Controllers/OpportunityController.php';
 require_once '../Models/Opportunity.php';
 use Models\Opportunity;
@@ -183,9 +189,10 @@ if ($hostID) {
                             </div>
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <button class="btn btn-primary me-2 px-3">Edit</button>
+                                    <a href="edit-opportunity.php?id=${opp.opportunity_id}" class="btn btn-primary me-2 px-3">Edit</a>
+                                    <button class="btn btn-danger me-2 px-3" onclick="deleteOpportunity(${opp.opportunity_id})">Delete</button>
                                 </div>
-                                <button class="btn btn-sm btn-danger">Mark Filled</button>
+                                <button class="btn btn-sm btn-warning" onclick="markAsFilled(${opp.opportunity_id})">Mark Filled</button>
                             </div>
                         </div>
                     </div>
@@ -265,6 +272,60 @@ if ($hostID) {
     // Initialize the display with all opportunities
     displayOpportunities();
 });
+
+    function deleteOpportunity(id) {
+        if (confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
+            // Send AJAX request to delete the opportunity
+            fetch(`delete-opportunity.php?id=${id}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the opportunity card from the DOM
+                    const card = document.querySelector(`.opportunity-card[data-id="${id}"]`);
+                    if (card) {
+                        card.closest('.col-lg-6').remove();
+                    }
+                    alert('Opportunity deleted successfully!');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the opportunity.');
+            });
+        }
+    }
+
+    function markAsFilled(id) {
+        if (confirm('Are you sure you want to mark this opportunity as filled?')) {
+            // Send AJAX request to mark the opportunity as filled
+            fetch(`update-opportunity-status.php?id=${id}&status=closed`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the status badge
+                    const statusBadge = document.querySelector(`.opportunity-card[data-id="${id}"] .badge`);
+                    if (statusBadge) {
+                        statusBadge.textContent = 'Closed';
+                        statusBadge.classList.remove('bg-success');
+                        statusBadge.classList.add('bg-secondary');
+                    }
+                    alert('Opportunity marked as filled!');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the opportunity status.');
+            });
+        }
+    }
     </script>
     <style>
     .pagination {
@@ -301,3 +362,6 @@ if ($hostID) {
 
 </body>
 </html>
+
+
+

@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../Controllers/MessageController.php';
-require_once '../Controllers/TravelerController.php';
+require_once '../Controllers/HostController.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['userID'])) {
@@ -9,67 +9,67 @@ if (!isset($_SESSION['userID'])) {
     exit;
 }
 
-$hostId = $_SESSION['userID'];
+$travelerId = $_SESSION['userID'];
 
 // Create controllers
 $messageController = new MessageController();
-$travelerController = new TravelerController();
+$hostController = new HostController();
 
-// Get all conversations for this host
-$conversations = $messageController->getRecentConversations($hostId, 'host');
+// Get all conversations for this traveler
+$conversations = $messageController->getRecentConversations($travelerId, 'traveler');
 
 // Initialize variables for the active conversation
-$activeTravelerId = null;
-$activeTravelerData = null;
+$activeHostId = null;
+$activeHostData = null;
 $activeMessages = [];
 
-// Check if a specific traveler is selected
-if (isset($_GET['traveler_id']) && is_numeric($_GET['traveler_id'])) {
-    $activeTravelerId = (int)$_GET['traveler_id'];
-    $activeTravelerData = $travelerController->getTravelerById($activeTravelerId);
+// Check if a specific host is selected
+if (isset($_GET['host_id']) && is_numeric($_GET['host_id'])) {
+    $activeHostId = (int)$_GET['host_id'];
+    $activeHostData = $hostController->getHostById($activeHostId);
     
-    // If traveler exists, get the conversation
-    if ($activeTravelerData) {
-        $activeMessages = $messageController->getConversation($hostId, $activeTravelerId, 'host', 'traveler');
+    // If host exists, get the conversation
+    if ($activeHostData) {
+        $activeMessages = $messageController->getConversation($travelerId, $activeHostId, 'traveler', 'host');
         
         // Mark messages as read
-        $messageController->markMessagesAsRead($hostId, $activeTravelerId, 'host', 'traveler');
+        $messageController->markMessagesAsRead($travelerId, $activeHostId, 'traveler', 'host');
     }
 } 
-// If no traveler is selected but there are conversations, select the first one
+// If no host is selected but there are conversations, select the first one
 else if (!empty($conversations)) {
     $firstConversation = $conversations[0];
-    $activeTravelerId = ($firstConversation['sender_id'] == $hostId) ? 
-                        $firstConversation['receiver_id'] : 
-                        $firstConversation['sender_id'];
+    $activeHostId = ($firstConversation['sender_id'] == $travelerId) ? 
+                    $firstConversation['receiver_id'] : 
+                    $firstConversation['sender_id'];
     
-    $activeTravelerData = $travelerController->getTravelerById($activeTravelerId);
+    $activeHostData = $hostController->getHostById($activeHostId);
     
-    if ($activeTravelerData) {
-        $activeMessages = $messageController->getConversation($hostId, $activeTravelerId, 'host', 'traveler');
+    if ($activeHostData) {
+        $activeMessages = $messageController->getConversation($travelerId, $activeHostId, 'traveler', 'host');
         
         // Mark messages as read
-        $messageController->markMessagesAsRead($hostId, $activeTravelerId, 'host', 'traveler');
+        $messageController->markMessagesAsRead($travelerId, $activeHostId, 'traveler', 'host');
     }
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $activeTravelerId) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $activeHostId) {
     $messageData = [
-        'sender_id' => $hostId,
-        'receiver_id' => $activeTravelerId,
+        'sender_id' => $travelerId,
+        'receiver_id' => $activeHostId,
         'message' => $_POST['message'],
         'status' => 'delivered',
         'is_read' => 0,
-        'sender_type' => 'host',
-        'receiver_type' => 'traveler'
+        'sender_type' => 'traveler',
+        'receiver_type' => 'host'
     ];
     
     $result = $messageController->sendMessage($messageData);
     
     if ($result) {
         // Redirect to prevent form resubmission
-        header("Location: messages.php?traveler_id=" . $activeTravelerId);
+        header("Location: messages.php?host_id=" . $activeHostId);
         exit;
     }
 }
@@ -77,13 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <title>HomeStays - Messages</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="homestays, cultural exchange, messaging, host communication" name="keywords">
-    <meta content="Communicate with volunteers and manage your cultural exchange messages" name="description">
+    <meta content="homestays, cultural exchange, messaging, traveler communication" name="keywords">
+    <meta content="Communicate with hosts and manage your cultural exchange messages" name="description">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,9 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
     </div>
     <!-- Spinner End -->
 
-
     <!-- Navbar Start -->
-    <?php include 'navHost.php'; ?>
+    <?php include 'navTraveler.php'; ?>
     <!-- Navbar End -->
 
     <!-- Messages Start -->
@@ -170,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
             <!-- Page Header -->
             <div class="text-center mb-5">
                 <h1 class="mb-3">Messages</h1>
-                <p class="mb-0">Communicate with volunteers and manage your cultural exchange conversations</p>
+                <p class="mb-0">Communicate with hosts and manage your cultural exchange conversations</p>
             </div>
 
             <div class="row">
@@ -187,25 +185,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
                             <?php if (empty($conversations)): ?>
                                 <div class="p-4 text-center">
                                     <p class="text-muted mb-0">No conversations yet.</p>
-                                    <p class="text-muted">Wait for travelers to contact you or reach out to applicants!</p>
+                                    <p class="text-muted">Start by contacting a host!</p>
+                                    <a href="exchange.php" class="btn btn-primary mt-2">Find Hosts</a>
                                 </div>
                             <?php else: ?>
                                 <?php foreach ($conversations as $index => $conversation): 
                                     // Determine the other user's ID
-                                    $otherUserId = ($conversation['sender_id'] == $hostId) ? 
+                                    $otherUserId = ($conversation['sender_id'] == $travelerId) ? 
                                                 $conversation['receiver_id'] : 
                                                 $conversation['sender_id'];
                                     
                                     // Get the other user's data
-                                    $otherUserData = $travelerController->getTravelerById($otherUserId);
+                                    $otherUserData = $hostController->getHostById($otherUserId);
                                     
                                     if (!$otherUserData) continue; // Skip if user data not found
                                     
                                     // Get unread message count
-                                    $unreadCount = $messageController->getUnreadMessageCount($hostId, 'host');
+                                    $unreadCount = $messageController->getUnreadMessageCount($travelerId, 'traveler');
                                     
                                     // Get the last message
-                                    $lastMessages = $messageController->getConversation($hostId, $otherUserId, 'host', 'traveler');
+                                    $lastMessages = $messageController->getConversation($travelerId, $otherUserId, 'traveler', 'host');
                                     $lastMessage = end($lastMessages);
                                     
                                     // Calculate time ago
@@ -227,13 +226,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
                                     }
                                     
                                     // Determine if this conversation is active
-                                    $isActive = $otherUserId == $activeTravelerId;
+                                    $isActive = $otherUserId == $activeHostId;
                                 ?>
                                     <div class="p-3 border-bottom conversation-item <?= $isActive ? 'active' : '' ?>" 
-                                         onclick="window.location.href='messages.php?traveler_id=<?= $otherUserId ?>'">
+                                         onclick="window.location.href='messages.php?host_id=<?= $otherUserId ?>'">
                                         <div class="d-flex align-items-center">
                                             <img src="../Controllers/GetProfileImg.php?user_id=<?= $otherUserId ?>" 
-                                                 class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="Traveler">
+                                                 class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="Host">
                                             <div class="flex-grow-1">
                                                 <h6 class="mb-1"><?= htmlspecialchars($otherUserData['first_name'] . ' ' . $otherUserData['last_name']) ?></h6>
                                                 <p class="mb-0 text-muted small">
@@ -258,19 +257,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
 
                 <!-- Chat Area -->
                 <div class="col-lg-8">
-                    <?php if ($activeTravelerData): ?>
+                    <?php if ($activeHostData): ?>
                         <div class="card border-0 shadow-sm">
                             <!-- Chat Header -->
                             <div class="card-header bg-white">
                                 <div class="d-flex align-items-center">
-                                    <img src="../Controllers/GetProfileImg.php?user_id=<?= $activeTravelerId ?>" 
-                                         class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="Traveler">
+                                    <img src="../Controllers/GetProfileImg.php?user_id=<?= $activeHostId ?>" 
+                                         class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="Host">
                                     <div>
-                                        <h5 class="mb-1"><?= htmlspecialchars($activeTravelerData['first_name'] . ' ' . $activeTravelerData['last_name']) ?></h5>
-                                        <p class="mb-0 text-muted"><?= htmlspecialchars($activeTravelerData['nationality'] ?? 'Traveler') ?></p>
+                                        <h5 class="mb-1"><?= htmlspecialchars($activeHostData['first_name'] . ' ' . $activeHostData['last_name']) ?></h5>
+                                        <p class="mb-0 text-muted"><?= htmlspecialchars($activeHostData['location']) ?></p>
                                     </div>
                                     <div class="ms-auto">
-                                        <a href="view_traveler.php?id=<?= $activeTravelerId ?>" class="btn btn-sm btn-outline-primary me-2">View Profile</a>
+                                        <a href="view_host.php?id=<?= $activeHostId ?>" class="btn btn-sm btn-outline-primary">View Profile</a>
                                     </div>
                                 </div>
                             </div>
@@ -283,19 +282,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
                                     </div>
                                 <?php else: ?>
                                     <?php foreach ($activeMessages as $message): ?>
-                                        <div class="d-flex mb-4 <?= $message['sender_id'] == $hostId ? 'justify-content-end' : '' ?>">
-                                            <?php if ($message['sender_id'] != $hostId): ?>
-                                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $activeTravelerId ?>" 
-                                                     class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" alt="Traveler">
+                                        <div class="d-flex mb-4 <?= $message['sender_id'] == $travelerId ? 'justify-content-end' : '' ?>">
+                                            <?php if ($message['sender_id'] != $travelerId): ?>
+                                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $activeHostId ?>" 
+                                                     class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" alt="Host">
                                             <?php endif; ?>
-                                            <div class="<?= $message['sender_id'] == $hostId ? 'message message-sent' : 'message message-received' ?>">
+                                            <div class="<?= $message['sender_id'] == $travelerId ? 'message message-sent' : 'message message-received' ?>">
                                                 <?= nl2br(htmlspecialchars($message['content'])) ?>
                                                 <div class="message-time">
                                                     <?= date('M d, Y g:i A', strtotime($message['timestamp'])) ?>
                                                 </div>
                                             </div>
-                                            <?php if ($message['sender_id'] == $hostId): ?>
-                                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $hostId ?>" 
+                                            <?php if ($message['sender_id'] == $travelerId): ?>
+                                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $travelerId ?>" 
                                                      class="rounded-circle ms-3" style="width: 40px; height: 40px; object-fit: cover;" alt="You">
                                             <?php endif; ?>
                                         </div>
@@ -305,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
 
                             <!-- Message Input -->
                             <div class="card-footer bg-white">
-                                <form action="messages.php?traveler_id=<?= $activeTravelerId ?>" method="post">
+                                <form action="messages.php?host_id=<?= $activeHostId ?>" method="post">
                                     <div class="input-group">
                                         <input type="text" class="form-control" name="message" placeholder="Type your message..." required>
                                         <button type="submit" class="btn btn-primary">
@@ -320,7 +319,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
                             <div class="card-body text-center py-5">
                                 <i class="fas fa-comments fa-4x text-muted mb-4"></i>
                                 <h4>No Conversation Selected</h4>
-                                <p class="text-muted">Select a conversation from the list or wait for travelers to contact you.</p>
+                                <p class="text-muted">Select a conversation from the list or start a new one by contacting a host.</p>
+                                <a href="exchange.php" class="btn btn-primary mt-3">Find Hosts</a>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -376,13 +376,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
         });
     </script>
 </body>
-</html> 
-
-
-
-
-
-
-
-
 

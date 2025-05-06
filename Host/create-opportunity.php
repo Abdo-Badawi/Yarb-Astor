@@ -1,4 +1,11 @@
 <?php
+session_start();
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
 // Include your validation and controller classes
 include_once '../Controllers/Validation.php';
 include_once '../Controllers/OpportunityController.php';
@@ -26,12 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle file upload first
     $targetDir = "../uploads/opportunities/";
     $imagePath = null;
-    
+
     // Create directory if it doesn't exist
     if (!file_exists($targetDir)) {
         mkdir($targetDir, 0777, true);
     }
-    
+
     if (isset($_FILES["image"]) && $_FILES["image"]["error"] == 0) {
         $fileName = time() . '_' . basename($_FILES["image"]["name"]);
         $targetFilePath = $targetDir . $fileName;
@@ -42,7 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (in_array(strtolower($fileType), $allowTypes)) {
             // Upload file to server
             if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFilePath)) {
-                $imagePath = $targetFilePath;
+                // Store the path that will be saved to the database
+                $imagePath = $fileName; // Just store the filename, not the full path
+                error_log("Image uploaded successfully: " . $imagePath);
             } else {
                 $errorMessage = "Sorry, there was an error uploading your file.";
                 $_SESSION['opportunity_error'] = $errorMessage;
@@ -297,3 +306,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
+

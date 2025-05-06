@@ -1,12 +1,14 @@
 <?php
-// Include validation for session management
-include_once '../Controllers/Validation.php';
-Validation::session();
+session_start();
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
+    header("Location: ../Common/login.php");
+    exit;
+}
 
 // Check if there's a success message
 if (!isset($_SESSION['opportunity_success'])) {
     // Redirect to the opportunity creation page if no success message exists
-    // This prevents direct access to the success page
     header("Location: create-opportunity.php");
     exit();
 }

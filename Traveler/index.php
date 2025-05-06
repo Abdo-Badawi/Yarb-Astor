@@ -1,3 +1,16 @@
+<?php
+session_start();
+// Check if user is logged in and is a traveler
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,7 +24,7 @@
         <!-- Google Web Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Roboto&display=swap" rel="stylesheet"> 
+        <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Roboto&display=swap" rel="stylesheet">
 
         <!-- Icon Font Stylesheet -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
@@ -329,4 +342,4 @@
         <!-- Template Javascript -->
         <script src="../js/main.js"></script>
     </body>
-</html> 
+</html>

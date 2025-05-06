@@ -1,3 +1,16 @@
+<?php
+session_start();
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -91,7 +104,7 @@
                     <div class="stat-change">+15% from last month</div>
                 </div>
             </div>
-            
+
             <!-- Recent Activity -->
             <div class="col-xl-8 col-md-12">
                 <div class="card dashboard-card">
@@ -152,7 +165,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Quick Links -->
             <div class="col-xl-4 col-md-12">
                 <div class="card dashboard-card">

@@ -9,6 +9,7 @@
                     <div class="navbar-nav ms-auto py-0">
                         <a href="index.php" class="nav-item nav-link">Home</a>
                         <a href="exchange.php" class="nav-item nav-link">Exchanges</a>
+                        <a href="messages.php" class="nav-item nav-link">Messages</a>
                         <a href="reviews.php" class="nav-item nav-link">Reviews</a>
                         <a href="contact.php" class="nav-item nav-link">Contact</a>
                         <a href="profile.php" class="nav-item nav-link">Profile</a>
@@ -16,3 +17,4 @@
                     <a href="search.php" class="btn btn-primary rounded-pill py-2 px-4 ms-lg-4">Find Exchange</a>
                 </div>
 </nav>
+

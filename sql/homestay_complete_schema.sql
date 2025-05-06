@@ -175,11 +175,11 @@ CREATE TABLE `fee_transaction` (
 
 CREATE TABLE `message` (
   `message_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `sender_id` bigint(20) DEFAULT NULL,
-  `receiver_id` bigint(20) DEFAULT NULL,
-  `content` text DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` varchar(255) DEFAULT NULL,
+  `sender_id` bigint(20) NOT NULL,
+  `receiver_id` bigint(20) NOT NULL,
+  `content` text NOT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` varchar(255) DEFAULT 'delivered',
   `is_read` TINYINT(1) NOT NULL DEFAULT 0,
   `sender_type` VARCHAR(20) NOT NULL,
   `receiver_type` VARCHAR(20) NOT NULL,
@@ -616,3 +616,4 @@ CREATE INDEX idx_traveler_location ON traveler(location);
 CREATE INDEX idx_message_timestamp ON message(timestamp);
 CREATE INDEX idx_notification_timestamp ON notification(timestamp);
 CREATE INDEX idx_review_rating ON review(rating);
+

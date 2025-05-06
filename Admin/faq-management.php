@@ -1,4 +1,16 @@
 <?php
+session_start();
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+
 require_once '../Models/SupportContent.php';
 require_once '../Controllers/SupportController.php';
 use Models\SupportContent;

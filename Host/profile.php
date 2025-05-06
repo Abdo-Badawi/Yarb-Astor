@@ -1,5 +1,10 @@
 <?php
 session_start();
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+    header("Location: ../Common/login.php");
+    exit;
+}
 
 // Include the ProfileController to handle the logic
 include_once '../Controllers/ProfileController.php';

@@ -137,6 +137,7 @@ class OpportunityController {
         return $result ?: [];
     }
 
+
     // Function to get all opportunities for admin
     public function getAllOpportunities(): array {
         $sql = "SELECT o.*, u.first_name, u.last_name
@@ -166,5 +167,118 @@ class OpportunityController {
 
         return $result;
     }
+
+    // Function to delete an opportunity
+    public function deleteOpportunity(int $opportunityId): bool {
+        $sql = "UPDATE opportunity SET status = 'deleted' WHERE opportunity_id = ?";
+        
+        $params = [$opportunityId];
+        
+        $this->db->openConnection();
+        $result = $this->db->update($sql, "i", $params);
+        $this->db->closeConnection();
+        
+        return $result;
+    }
+
+    // Function to update opportunity status
+    public function updateOpportunityStatus(int $opportunityId, string $status): bool {
+        $sql = "UPDATE opportunity SET status = ? WHERE opportunity_id = ?";
+        
+        $params = [$status, $opportunityId];
+        
+        $this->db->openConnection();
+        $result = $this->db->update($sql, "si", $params);
+        $this->db->closeConnection();
+        
+        return $result;
+    }
+
+    // Function to update an opportunity
+    public function updateOpportunity(array $opportunityData): bool {
+        $sql = "UPDATE opportunity SET 
+                title = ?, 
+                description = ?, 
+                location = ?, 
+                start_date = ?, 
+                end_date = ?, 
+                category = ?, 
+                requirements = ?, 
+                opportunity_photo = ? 
+                WHERE opportunity_id = ?";
+        
+        $params = [
+            $opportunityData['title'],
+            $opportunityData['description'],
+            $opportunityData['location'],
+            $opportunityData['start_date'],
+            $opportunityData['end_date'],
+            $opportunityData['category'],
+            $opportunityData['requirements'],
+            $opportunityData['image_path'],
+            $opportunityData['opportunity_id']
+        ];
+        
+        $this->db->openConnection();
+        $result = $this->db->update($sql, "ssssssssi", $params);
+        $this->db->closeConnection();
+        
+        return $result;
+    }
+
+    public function saveOpportunityToDB($opportunity) {
+        try {
+            // Ensure database connection is established
+            $this->db->openConnection();
+            
+            // Get image path
+            $imagePath = $opportunity->getImagePath();
+            
+            // Debug information
+            error_log("Image path: " . ($imagePath ?? 'null'));
+            
+            // Prepare the SQL statement with the correct column name "opportunity_photo"
+            $sql = "INSERT INTO opportunity (title, description, location, start_date, end_date, category, opportunity_photo, requirements, host_id, status, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NOW())";
+            
+            // Format dates for MySQL
+            $startDate = $opportunity->getStartDate()->format('Y-m-d');
+            $endDate = $opportunity->getEndDate()->format('Y-m-d');
+            
+            // Set parameters
+            $params = [
+                $opportunity->getTitle(),
+                $opportunity->getDescription(),
+                $opportunity->getLocation(),
+                $startDate,
+                $endDate,
+                $opportunity->getCategory(),
+                $imagePath,
+                $opportunity->getRequirements(),
+                $opportunity->getHostId()
+            ];
+            
+            // Debug information
+            error_log("Saving opportunity with params: " . print_r($params, true));
+            
+            // Execute the query
+            $result = $this->db->insert($sql, "ssssssssi", $params);
+            
+            // Close the connection
+            $this->db->closeConnection();
+            
+            if (!$result) {
+                error_log("Database insert failed in saveOpportunityToDB");
+            } else {
+                error_log("Opportunity saved successfully with ID: " . $result);
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error saving opportunity: " . $e->getMessage());
+            return false;
+        }
+    }
+
 }
 ?>

@@ -38,7 +38,7 @@ class ProfileController {
     }
 
     public function updateUserProfile($userId, $userData) {
-        if (!$this->db->openConnection()) {
+        if (!$this->db->openConnection() || !$this->db->conn) {
             return false;
         }
         

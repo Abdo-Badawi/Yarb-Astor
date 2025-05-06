@@ -1,12 +1,17 @@
 <?php
 session_start();
-require_once '../Controllers/DashboardController.php';
-
 // Check if user is logged in and is a host
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
-    header('Location: ../login.php');
+    header("Location: ../Common/login.php");
     exit;
 }
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+
+require_once '../Controllers/DashboardController.php';
 
 $hostID = $_SESSION['userID'];
 $dashboardController = new DashboardController();
@@ -69,7 +74,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                 <h1 class="mb-3">Host Dashboard</h1>
                 <p class="mb-0">Welcome back! Here's an overview of your homestay activities</p>
             </div>
-            
+
             <!-- Analytics Overview -->
             <div class="row g-4 mb-4">
                 <div class="col-lg-3 col-md-6">
@@ -105,7 +110,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                     </div>
                 </div>
             </div>
-            
+
             <!-- Main Dashboard Content -->
             <div class="row g-4">
                 <!-- Active Opportunities -->
@@ -147,7 +152,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Recent Applications -->
                 <div class="col-lg-6 col-md-12">
                     <div class="card border-0 shadow-sm h-100">
@@ -184,7 +189,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Recent Messages -->
                 <div class="col-lg-6 col-md-12">
                     <div class="card border-0 shadow-sm h-100">
@@ -214,7 +219,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Quick Actions -->
                 <div class="col-lg-6 col-md-12">
                     <div class="card border-0 shadow-sm h-100">
@@ -267,4 +272,5 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
     <!-- Template Javascript -->
     <script src="../js/main.js"></script>
 </body>
-</html> 
+</html>
+

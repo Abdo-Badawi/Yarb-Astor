@@ -63,3 +63,26 @@ $hasApplied = $opportunityController->checkIfTravelerApplied($travelerID, $oppor
 </head>
 
 <body>
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="row g-5">
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="exchange.php" class="btn btn-outline-secondary">Back to Opportunities</a>
+                        <div>
+                            <a href="apply_opportunity.php?id=<?= $opportunityId ?>" class="btn btn-primary me-2">Apply Now</a>
+                            <a href="contact_host.php?id=<?= $opportunityData['host_id'] ?>" class="btn btn-outline-primary">
+                                <i class="fas fa-envelope me-1"></i>Contact Host
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+

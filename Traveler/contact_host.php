@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'sender_id' => $travelerId,
         'receiver_id' => $hostId,
         'message' => $_POST['message'],
-        'sent_date' => date('Y-m-d H:i:s'),
+        'status' => 'delivered',
         'is_read' => 0,
         'sender_type' => 'traveler',
         'receiver_type' => 'host'
@@ -56,10 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get conversation history
-$messages = $messageController->getConversation($travelerId, $hostId, 'traveler', 'host');
-
-// Mark messages as read
-$messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host');
+try {
+    $messages = $messageController->getConversation($travelerId, $hostId, 'traveler', 'host');
+    
+    // Mark messages as read
+    $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host');
+} catch (Exception $e) {
+    // If there's an error, set messages to empty array
+    $messages = [];
+    
+    // Log the error
+    error_log("Error in contact_host.php: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -68,13 +76,13 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
     <meta charset="utf-8">
     <title>HomeStays - Contact Host</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="homestays, cultural exchange, local experience, authentic travel" name="keywords">
-    <meta content="Contact your host for this cultural exchange" name="description">
+    <meta content="homestays, cultural exchange, contact host, messaging" name="keywords">
+    <meta content="Contact a host for cultural exchange opportunities" name="description">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Roboto&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Roboto&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
@@ -92,29 +100,30 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
     
     <style>
         .message-container {
-            height: 400px;
+            max-height: 400px;
             overflow-y: auto;
         }
-        
         .message {
-            border-radius: 15px;
             padding: 10px 15px;
+            border-radius: 15px;
             margin-bottom: 10px;
             max-width: 75%;
+            position: relative;
         }
-        
         .message-sent {
             background-color: #dcf8c6;
             margin-left: auto;
+            border-bottom-right-radius: 5px;
         }
-        
         .message-received {
             background-color: #f1f0f0;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
         }
-        
         .message-time {
             font-size: 0.7rem;
-            color: #777;
+            color: #999;
+            margin-top: 5px;
             text-align: right;
         }
     </style>
@@ -132,44 +141,48 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
     <!-- Navbar Start -->
     <?php include 'navTraveler.php'; ?>
     <!-- Navbar End -->
- 
+
     <!-- Contact Host Start -->
     <div class="container-fluid py-5">
         <div class="container py-5">
-            <div class="mx-auto text-center mb-5" style="max-width: 900px;">
-                <h5 class="section-title px-3">Contact Host</h5>
-                <h1 class="mb-0">Message <?= htmlspecialchars($hostData['first_name'] . ' ' . $hostData['last_name']) ?></h1>
+            <div class="text-center mb-5">
+                <h1 class="mb-3">Contact Host</h1>
+                <p class="mb-0">Send a message to <?= htmlspecialchars($hostData['first_name'] . ' ' . $hostData['last_name']) ?></p>
             </div>
-            
-            <!-- Alert Messages -->
-            <?php if (isset($_SESSION['success_message'])): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($_SESSION['success_message']) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                <?php unset($_SESSION['success_message']); ?>
-            <?php endif; ?>
-            
-            <?php if (isset($_SESSION['error_message'])): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($_SESSION['error_message']) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                <?php unset($_SESSION['error_message']); ?>
-            <?php endif; ?>
             
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm mb-4">
+                    <div class="card border-0 shadow-sm">
                         <div class="card-body p-4">
+                            <!-- Host Info -->
                             <div class="d-flex align-items-center mb-4">
-                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $hostData['host_id'] ?>" 
+                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $hostId ?>" 
                                      class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="Host">
                                 <div>
                                     <h5 class="mb-1"><?= htmlspecialchars($hostData['first_name'] . ' ' . $hostData['last_name']) ?></h5>
                                     <p class="mb-0 text-muted"><?= htmlspecialchars($hostData['location']) ?></p>
                                 </div>
+                                <div class="ms-auto">
+                                    <a href="view_host.php?id=<?= $hostId ?>" class="btn btn-sm btn-outline-primary">View Profile</a>
+                                </div>
                             </div>
+                            
+                            <!-- Success/Error Messages -->
+                            <?php if (isset($_SESSION['success_message'])): ?>
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <?= $_SESSION['success_message'] ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                <?php unset($_SESSION['success_message']); ?>
+                            <?php endif; ?>
+                            
+                            <?php if (isset($_SESSION['error_message'])): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <?= $_SESSION['error_message'] ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                <?php unset($_SESSION['error_message']); ?>
+                            <?php endif; ?>
                             
                             <!-- Message History -->
                             <div class="message-container mb-4 p-3 border rounded">
@@ -178,9 +191,9 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
                                 <?php else: ?>
                                     <?php foreach ($messages as $msg): ?>
                                         <div class="message <?= $msg['sender_id'] == $travelerId ? 'message-sent' : 'message-received' ?>">
-                                            <?= nl2br(htmlspecialchars($msg['message'])) ?>
+                                            <?= nl2br(htmlspecialchars($msg['content'])) ?>
                                             <div class="message-time">
-                                                <?= date('M d, Y g:i A', strtotime($msg['sent_date'])) ?>
+                                                <?= date('M d, Y g:i A', strtotime($msg['timestamp'])) ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -188,14 +201,16 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
                             </div>
                             
                             <!-- Message Form -->
-                            <form action="" method="post">
+                            <form action="contact_host.php?id=<?= $hostId ?>" method="post">
                                 <div class="mb-3">
                                     <label for="message" class="form-label">Your Message</label>
                                     <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <a href="exchange.php" class="btn btn-outline-secondary">Back to Opportunities</a>
-                                    <button type="submit" class="btn btn-primary">Send Message</button>
+                                    <a href="exchange.php" class="btn btn-outline-secondary">Back to Exchanges</a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -226,8 +241,10 @@ $messageController->markMessagesAsRead($travelerId, $hostId, 'traveler', 'host')
         // Auto-scroll to the bottom of the message container
         document.addEventListener('DOMContentLoaded', function() {
             const messageContainer = document.querySelector('.message-container');
-            messageContainer.scrollTop = messageContainer.scrollHeight;
+            if (messageContainer) {
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
         });
     </script>
 </body>
-</html>
+
