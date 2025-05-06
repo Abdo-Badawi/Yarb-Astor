@@ -168,8 +168,8 @@ class OpportunityController {
         return $result;
     }
 
-    // Function to delete an opportunity
-    public function deleteOpportunity(int $opportunityId): bool {
+    // Function to mark an opportunity as deleted
+    public function markOpportunityAsDeleted(int $opportunityId): bool {
         $sql = "UPDATE opportunity SET status = 'deleted' WHERE opportunity_id = ?";
         
         $params = [$opportunityId];
