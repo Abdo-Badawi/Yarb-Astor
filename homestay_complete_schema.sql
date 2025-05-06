@@ -310,6 +310,85 @@ CREATE TABLE `user_activity_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Create payment_verification_requests table
+-- Table structure for table `payment_verification_requests`
+--
+
+CREATE TABLE IF NOT EXISTS `payment_verification_requests` (
+  `request_id` int(11) NOT NULL AUTO_INCREMENT,
+  `traveler_id` int(11) NOT NULL,
+  `booking_id` varchar(50) DEFAULT NULL,
+  `transaction_id` varchar(50) DEFAULT NULL,
+  `issue_type` enum('double_payment','payment_not_received','refund_request','payment_method_change','other') NOT NULL,
+  `issue_description` text NOT NULL,
+  `action_required` text NOT NULL,
+  `status` enum('new','pending','in_progress','resolved','closed') NOT NULL DEFAULT 'new',
+  `priority` enum('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`request_id`),
+  KEY `traveler_id` (`traveler_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create fee table
+CREATE TABLE IF NOT EXISTS `fee` (
+  `fee_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `fee_name` varchar(255) NOT NULL,
+  `fee_type` enum('fixed','percentage','tiered') NOT NULL DEFAULT 'fixed',
+  `amount` float NOT NULL,
+  `currency` varchar(10) NOT NULL DEFAULT 'USD',
+  `description` text DEFAULT NULL,
+  `applicability` enum('all','new','returning','premium') NOT NULL DEFAULT 'all',
+  `is_mandatory` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `created_by` bigint(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`fee_id`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `fee_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Create fee_assignment table to link fees to travelers
+CREATE TABLE IF NOT EXISTS `fee_assignment` (
+  `assignment_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `fee_id` bigint(20) NOT NULL,
+  `traveler_id` bigint(20) DEFAULT NULL,
+  `status` enum('pending','paid','waived') NOT NULL DEFAULT 'pending',
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `due_date` date DEFAULT NULL,
+  `paid_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`assignment_id`),
+  KEY `fee_id` (`fee_id`),
+  KEY `traveler_id` (`traveler_id`),
+  CONSTRAINT `fee_assignment_ibfk_1` FOREIGN KEY (`fee_id`) REFERENCES `fee` (`fee_id`),
+  CONSTRAINT `fee_assignment_ibfk_2` FOREIGN KEY (`traveler_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payment_verification_requests`
+--
+
+INSERT INTO `payment_verification_requests` (`traveler_id`, `booking_id`, `transaction_id`, `issue_type`, `issue_description`, `action_required`, `status`, `priority`) VALUES
+(1, 'BK-2023-45678', 'TXN-10001', 'double_payment', 'Traveler reports being charged twice for the same booking. First payment of ₹5,000 on 15/05/2023 and second payment of ₹5,000 on 16/05/2023.', 'Verify both transactions in the database and process refund if confirmed.', 'pending', 'normal'),
+(1, 'BK-2023-12345', 'TXN-10002', 'payment_not_received', 'Traveler made payment of ₹7,500 on 10/06/2023 but host reports not receiving the payment.', 'Check payment status in the system and verify with payment gateway.', 'new', 'urgent'),
+(1, 'BK-2023-78901', 'TXN-789012', 'refund_request', 'Traveler requesting refund for cancelled booking. Original payment of ₹12,000 made on 01/04/2023. Cancellation policy allows for 80% refund.', 'Calculate refund amount and process according to cancellation policy.', 'in_progress', 'normal'),
+(1, 'BK-2023-34567', 'TXN-10003', 'payment_method_change', 'Traveler wants to change payment method from credit card to UPI for upcoming booking. Original payment not yet processed.', 'Update payment method in the system and send confirmation to traveler.', 'new', 'low');
+  `request_id` int(11) NOT NULL AUTO_INCREMENT,
+  `traveler_id` int(11) NOT NULL,
+  `booking_id` varchar(50) DEFAULT NULL,
+  `transaction_id` varchar(50) DEFAULT NULL,
+  `issue_type` enum('double_payment', 'payment_not_received', 'refund_request', 'payment_method_change', 'other') NOT NULL,
+  `issue_description` text NOT NULL,
+  `action_required` text NOT NULL,
+  `status` enum('new', 'pending', 'in_progress', 'resolved', 'closed') NOT NULL DEFAULT 'new',
+  `priority` enum('low', 'normal', 'high', 'urgent') NOT NULL DEFAULT 'normal',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`request_id`),
+  KEY `traveler_id` (`traveler_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 --
 -- Views
@@ -317,7 +396,7 @@ CREATE TABLE `user_activity_log` (
 
 -- Create a view for user notifications
 CREATE OR REPLACE VIEW `user_notifications` AS
-SELECT 
+SELECT
   n.notification_id,
   n.receiver_id,
   n.content,
@@ -332,7 +411,7 @@ ORDER BY n.timestamp DESC;
 
 -- Create a view for active opportunities with host information
 CREATE OR REPLACE VIEW `active_opportunities` AS
-SELECT 
+SELECT
   o.*,
   h.property_type AS host_property_type,
   h.preferred_language AS host_language,
@@ -348,7 +427,7 @@ ORDER BY o.created_at DESC;
 
 -- Create a view for application details with traveler and opportunity info
 CREATE OR REPLACE VIEW `application_details` AS
-SELECT 
+SELECT
   a.*,
   t.skill AS traveler_skill,
   t.language_spoken AS traveler_language,
@@ -377,22 +456,22 @@ DELIMITER //
 -- Procedure to get unread message count for a user
 CREATE PROCEDURE GetUnreadMessageCount(IN userId BIGINT, IN userType VARCHAR(20))
 BEGIN
-  SELECT COUNT(*) AS unread_count 
-  FROM message 
-  WHERE receiver_id = userId 
-  AND receiver_type = userType 
+  SELECT COUNT(*) AS unread_count
+  FROM message
+  WHERE receiver_id = userId
+  AND receiver_type = userType
   AND is_read = 0;
 END //
 
 -- Procedure to mark messages as read
 CREATE PROCEDURE MarkMessagesAsRead(IN receiverId BIGINT, IN senderId BIGINT, IN receiverType VARCHAR(20), IN senderType VARCHAR(20))
 BEGIN
-  UPDATE message 
-  SET is_read = 1 
-  WHERE receiver_id = receiverId 
-  AND sender_id = senderId 
-  AND receiver_type = receiverType 
-  AND sender_type = senderType 
+  UPDATE message
+  SET is_read = 1
+  WHERE receiver_id = receiverId
+  AND sender_id = senderId
+  AND receiver_type = receiverType
+  AND sender_type = senderType
   AND is_read = 0;
 END //
 
@@ -408,25 +487,25 @@ END //
 -- Procedure to get all conversations for a user
 CREATE PROCEDURE GetUserConversations(IN userId BIGINT, IN userType VARCHAR(20))
 BEGIN
-  SELECT 
-    DISTINCT 
-    CASE 
-      WHEN sender_id = userId THEN receiver_id 
-      ELSE sender_id 
+  SELECT
+    DISTINCT
+    CASE
+      WHEN sender_id = userId THEN receiver_id
+      ELSE sender_id
     END AS other_user_id,
-    CASE 
-      WHEN sender_id = userId THEN receiver_type 
-      ELSE sender_type 
+    CASE
+      WHEN sender_id = userId THEN receiver_type
+      ELSE sender_type
     END AS other_user_type,
-    (SELECT content FROM message m2 
+    (SELECT content FROM message m2
      WHERE ((m2.sender_id = userId AND m2.receiver_id = CASE WHEN m1.sender_id = userId THEN m1.receiver_id ELSE m1.sender_id END)
      OR (m2.sender_id = CASE WHEN m1.sender_id = userId THEN m1.receiver_id ELSE m1.sender_id END AND m2.receiver_id = userId))
      ORDER BY m2.timestamp DESC LIMIT 1) AS last_message,
-    (SELECT timestamp FROM message m2 
+    (SELECT timestamp FROM message m2
      WHERE ((m2.sender_id = userId AND m2.receiver_id = CASE WHEN m1.sender_id = userId THEN m1.receiver_id ELSE m1.sender_id END)
      OR (m2.sender_id = CASE WHEN m1.sender_id = userId THEN m1.receiver_id ELSE m1.sender_id END AND m2.receiver_id = userId))
      ORDER BY m2.timestamp DESC LIMIT 1) AS last_message_time,
-    (SELECT COUNT(*) FROM message m2 
+    (SELECT COUNT(*) FROM message m2
      WHERE m2.sender_id = CASE WHEN m1.sender_id = userId THEN m1.receiver_id ELSE m1.sender_id END
      AND m2.receiver_id = userId
      AND m2.is_read = 0) AS unread_count
@@ -438,7 +517,7 @@ END //
 -- Procedure to get host opportunities with application counts
 CREATE PROCEDURE GetHostOpportunitiesWithStats(IN hostId BIGINT)
 BEGIN
-  SELECT 
+  SELECT
     o.*,
     COUNT(DISTINCT a.application_id) AS total_applications,
     SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) AS pending_applications,
@@ -454,7 +533,7 @@ END //
 -- Procedure to get traveler applications with details
 CREATE PROCEDURE GetTravelerApplications(IN travelerId BIGINT)
 BEGIN
-  SELECT 
+  SELECT
     a.*,
     o.title AS opportunity_title,
     o.location AS opportunity_location,
@@ -479,13 +558,13 @@ CREATE PROCEDURE UpdateUserProfile(
   IN bio TEXT
 )
 BEGIN
-  UPDATE users 
-  SET 
+  UPDATE users
+  SET
     first_name = firstName,
     last_name = lastName,
     phone_number = phoneNumber
   WHERE user_id = userId;
-  
+
   -- Update bio in appropriate table based on user type
   IF EXISTS (SELECT 1 FROM hosts WHERE host_id = userId) THEN
     UPDATE hosts SET bio = bio WHERE host_id = userId;
@@ -510,15 +589,15 @@ AFTER UPDATE ON applications
 FOR EACH ROW
 BEGIN
   DECLARE opportunity_title VARCHAR(255);
-  
+
   IF NEW.status != OLD.status THEN
     -- Get the opportunity title
     SELECT title INTO opportunity_title FROM opportunity WHERE opportunity_id = NEW.opportunity_id;
-    
+
     -- Insert notification for traveler
     INSERT INTO notification (receiver_id, content, timestamp, is_read)
     VALUES (
-      NEW.traveler_id, 
+      NEW.traveler_id,
       CONCAT('Your application for "', opportunity_title, '" has been ', NEW.status, '.'),
       NOW(),
       0
@@ -532,15 +611,15 @@ AFTER INSERT ON message
 FOR EACH ROW
 BEGIN
   DECLARE sender_name VARCHAR(255);
-  
+
   -- Get the sender's name
-  SELECT CONCAT(first_name, ' ', last_name) INTO sender_name 
+  SELECT CONCAT(first_name, ' ', last_name) INTO sender_name
   FROM users WHERE user_id = NEW.sender_id;
-  
+
   -- Insert notification for receiver
   INSERT INTO notification (receiver_id, content, timestamp, is_read)
   VALUES (
-    NEW.receiver_id, 
+    NEW.receiver_id,
     CONCAT('You have received a new message from ', sender_name, '.'),
     NOW(),
     0
@@ -553,14 +632,14 @@ AFTER INSERT ON review
 FOR EACH ROW
 BEGIN
   DECLARE avg_rating FLOAT;
-  
+
   -- Only update if the review is for a host
   IF EXISTS (SELECT 1 FROM hosts WHERE host_id = NEW.receiver_id) THEN
     -- Calculate the new average rating
-    SELECT AVG(rating) INTO avg_rating 
-    FROM review 
+    SELECT AVG(rating) INTO avg_rating
+    FROM review
     WHERE receiver_id = NEW.receiver_id;
-    
+
     -- Update the host's rating
     UPDATE hosts SET rate = avg_rating WHERE host_id = NEW.receiver_id;
   END IF;
@@ -572,14 +651,14 @@ AFTER INSERT ON review
 FOR EACH ROW
 BEGIN
   DECLARE avg_rating FLOAT;
-  
+
   -- Only update if the review is for a traveler
   IF EXISTS (SELECT 1 FROM traveler WHERE traveler_id = NEW.receiver_id) THEN
     -- Calculate the new average rating
-    SELECT AVG(rating) INTO avg_rating 
-    FROM review 
+    SELECT AVG(rating) INTO avg_rating
+    FROM review
     WHERE receiver_id = NEW.receiver_id;
-    
+
     -- Update the traveler's rating
     UPDATE traveler SET rate = avg_rating WHERE traveler_id = NEW.receiver_id;
   END IF;
