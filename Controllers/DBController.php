@@ -5,7 +5,7 @@ class DBController {
     private $host = "localhost";
     private $user = "root";
     private $password = "";
-    private $database = "homestay3";
+    private $database = "homestay";
     
    
     // Open database connection
