@@ -1,0 +1,14 @@
+/* Custom styles for card headers */
+.card-header h5 {
+    color: white !important;
+}
+
+.card-header h5 i {
+    color: white !important;
+}
+
+/* Make sure the text is clearly visible */
+.card-header {
+    background: linear-gradient(to right, #58b4d1, #4ca8c5);
+    color: white !important;
+}

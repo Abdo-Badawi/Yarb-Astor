@@ -71,27 +71,25 @@ class FeeTransaction {
 
     public function getStatusBadgeClass(): string {
         switch ($this->status) {
-            case 'paid':
+            case 'completed':
                 return 'badge-success';
             case 'pending':
                 return 'badge-warning';
             case 'failed':
                 return 'badge-danger';
-            case 'refunded':
-                return 'badge-info';
             default:
                 return 'badge-secondary';
         }
     }
 
-    public function markAsPaid(): bool {
-        $this->status = 'paid';
+    public function markAsCompleted(): bool {
+        $this->status = 'completed';
         $this->updatedAt = new \DateTime();
         return true;
     }
 
-    public function refund(): bool {
-        $this->status = 'refunded';
+    public function markAsFailed(): bool {
+        $this->status = 'failed';
         $this->updatedAt = new \DateTime();
         return true;
     }

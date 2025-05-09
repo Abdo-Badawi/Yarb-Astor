@@ -1,170 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <title>Payment Verification - HomeStay Admin</title>
-    <!-- HTML5 Shim and Respond.js IE11 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 11]>
-    	<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-    	<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    	<![endif]-->
-    <!-- Meta -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="Payment Verification for HomeStay Admin Dashboard" />
-    <meta name="keywords" content="admin, dashboard, payment, verification">
-    <meta name="author" content="HomeStay" />
-    <!-- Favicon icon -->
-    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
-
-    <!-- vendor css -->
-    <link rel="stylesheet" href="assets/css/style.css">
-    <!-- custom css -->
-    <link rel="stylesheet" href="assets/css/custom.css">
-
-    <style>
-        /* Make all action buttons the same width */
-        .btn-sm {
-            min-width: 60px !important;
-            max-width: 60px !important;
-            text-align: center;
-            display: inline-block;
-            box-sizing: border-box;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0.375rem 0.25rem;
-            font-size: 0.75rem;
-        }
-
-        /* Ensure buttons display horizontally */
-        td .btn-sm {
-            display: inline-block;
-            margin-right: 3px;
-        }
-
-        /* Remove margin from last button in a group */
-        td .btn-sm:last-child {
-            margin-right: 0;
-        }
-
-        /* Make all action buttons the same width and center them */
-        .table td, .table th {
-            text-align: center;
-            vertical-align: middle;
-            padding: 0.5rem 0.25rem;
-        }
-
-        /* Make the table responsive */
-        .table-responsive {
-            overflow-x: hidden;
-        }
-
-        /* Adjust table to prevent horizontal scrolling */
-        .table {
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        /* Set column widths */
-        .table th:nth-child(1), .table td:nth-child(1) { width: 10%; } /* ID */
-        .table th:nth-child(2), .table td:nth-child(2) { width: 12%; } /* Traveler */
-        .table th:nth-child(3), .table td:nth-child(3) { width: 12%; } /* Fee Type */
-        .table th:nth-child(4), .table td:nth-child(4) { width: 8%; } /* Amount */
-        .table th:nth-child(5), .table td:nth-child(5) { width: 8%; } /* Date */
-        .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* Payment Method */
-        .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* Status */
-        .table th:nth-child(8), .table td:nth-child(8) { width: 30%; } /* Actions */
-
-        /* Ensure text doesn't overflow */
-        .table td {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Specific style for the Fail button */
-        .btn-danger.btn-sm {
-            min-width: 60px !important;
-            max-width: 60px !important;
-            padding: 0.375rem 0.25rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Styles for verification request buttons */
-        .verification-btn {
-            min-width: 150px !important;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            padding: 8px 15px;
-            font-size: 14px;
-            font-weight: 500;
-            border-width: 2px;
-            transition: all 0.3s ease;
-        }
-
-        .verification-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .verification-btn i {
-            font-size: 16px;
-        }
-
-        /* Make badge text white and more prominent */
-        .badge {
-            color: white !important;
-            font-weight: 500;
-            padding: 5px 10px;
-            font-size: 12px;
-            letter-spacing: 0.5px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        /* Enhance badge colors */
-        .bg-secondary, .badge-secondary {
-            background-color: #6c757d !important;
-        }
-
-        .bg-warning, .badge-warning {
-            background-color: #ffc107 !important;
-        }
-
-        .bg-info, .badge-info {
-            background-color: #17a2b8 !important;
-        }
-
-        .bg-success, .badge-success {
-            background-color: #28a745 !important;
-        }
-
-        .bg-danger, .badge-danger {
-            background-color: #dc3545 !important;
-        }
-
-        .bg-dark, .badge-dark {
-            background-color: #343a40 !important;
-        }
-
-        .verification-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .verification-btn i {
-            font-size: 16px;
-        }
-    </style>
-</head>
-<body class="">
-
 <?php
+// Start the session at the very beginning of the file
+session_start();
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Load required controllers
 require_once '../Controllers/FeeTransactionController.php';
 require_once '../Controllers/CardController.php';
 require_once '../Controllers/DBController.php';
@@ -252,9 +96,195 @@ function getIssueTypeLabel($issueType) {
             return 'Unknown Issue';
     }
 }
-
-include 'navCommon.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Payment Verification - HomeStay Admin</title>
+
+
+    <style>
+        /* Make all action buttons the same width */
+        .btn-sm {
+            min-width: 60px !important;
+            max-width: 60px !important;
+            text-align: center;
+            display: inline-block;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0.375rem 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        /* Ensure buttons display horizontally */
+        td .btn-sm {
+            display: inline-block;
+            margin-right: 3px;
+        }
+
+        /* Remove margin from last button in a group */
+        td .btn-sm:last-child {
+            margin-right: 0;
+        }
+
+        /* Make all action buttons the same width and center them */
+        .table td, .table th {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0.5rem 0.25rem;
+        }
+
+        /* Make the table responsive */
+        .table-responsive {
+            overflow-x: hidden;
+        }
+
+        /* Adjust table to prevent horizontal scrolling */
+        .table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        /* Set column widths */
+        .table th:nth-child(1), .table td:nth-child(1) { width: 10%; } /* ID */
+        .table th:nth-child(2), .table td:nth-child(2) { width: 12%; } /* Traveler */
+        .table th:nth-child(3), .table td:nth-child(3) { width: 12%; } /* Amount */
+        .table th:nth-child(4), .table td:nth-child(4) { width: 8%; } /* Date */
+        .table th:nth-child(5), .table td:nth-child(5) { width: 10%; } /* Payment Method */
+        .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* Status */
+        .table th:nth-child(7), .table td:nth-child(7) { width: 30%; } /* Actions */
+
+        /* Ensure text doesn't overflow */
+        .table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Enhanced button styling */
+        .btn-group-sm .btn {
+            border-radius: 4px;
+            margin-right: 2px;
+            margin-bottom: 2px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        .btn-group-sm .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-group-sm .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Styles for verification request buttons */
+        .verification-btn {
+            min-width: 150px !important;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: 500;
+            border-width: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .verification-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .verification-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .verification-btn i {
+            font-size: 16px;
+        }
+
+        /* Button colors */
+        .btn-info {
+            background-color: #4099ff;
+            border-color: #4099ff;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-danger {
+            background-color: #ff5370;
+            border-color: #ff5370;
+        }
+
+        .btn-primary {
+            background-color: #2ed8b6;
+            border-color: #2ed8b6;
+        }
+
+        .btn-warning {
+            background-color: #FFB64D;
+            border-color: #FFB64D;
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #2ed8b6;
+            border-color: #2ed8b6;
+        }
+
+        /* Make badge text white and more prominent */
+        .badge {
+            color: white !important;
+            font-weight: 500;
+            padding: 5px 10px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Enhance badge colors */
+        .bg-secondary, .badge-secondary {
+            background-color: #6c757d !important;
+        }
+
+        .bg-warning, .badge-warning {
+            background-color: #FFB64D !important;
+        }
+
+        .bg-info, .badge-info {
+            background-color: #4099ff !important;
+        }
+
+        .bg-success, .badge-success {
+            background-color: #2ed8b6 !important;
+        }
+
+        .bg-danger, .badge-danger {
+            background-color: #ff5370 !important;
+        }
+
+        .bg-dark, .badge-dark {
+            background-color: #343a40 !important;
+        }
+    </style>
+</head>
+<body class="">
+
+    <?php 
+        include 'navCommon.php'; 
+        include_once 'header-common.php'
+    ?>
 
     <!-- [ Main Content ] start -->
     <div class="pcoded-main-container">
@@ -461,7 +491,7 @@ include 'navCommon.php';
                                             <tr>
                                                 <th>Transaction ID</th>
                                                 <th>Traveler</th>
-                                                <th class="d-none d-md-table-cell">Fee Type</th> <!-- Hide on mobile -->
+
                                                 <th>Amount</th>
                                                 <th class="d-none d-md-table-cell">Date</th> <!-- Hide on mobile -->
                                                 <th class="d-none d-lg-table-cell">Payment Method</th> <!-- Hide on smaller screens -->
@@ -482,8 +512,7 @@ include 'navCommon.php';
                                                     <!-- Mobile-only info -->
                                                     <div class="d-block d-md-none">
                                                         <small class="text-muted">
-                                                            <?php echo (new DateTime($transaction['date'] ?? $transaction['transaction_date'] ?? date('Y-m-d')))->format('Y-m-d'); ?> |
-                                                            <?php echo htmlspecialchars($transaction['fee_type']); ?>
+                                                            <?php echo (new DateTime($transaction['date'] ?? $transaction['transaction_date'] ?? date('Y-m-d')))->format('Y-m-d'); ?>
                                                         </small>
                                                     </div>
                                                 </td>
@@ -494,7 +523,7 @@ include 'navCommon.php';
                                                         <small class="text-muted"><?php echo htmlspecialchars($transaction['payment_method']); ?></small>
                                                     </div>
                                                 </td>
-                                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($transaction['fee_type']); ?></td>
+
                                                 <td><?php echo $transaction['currency'] . ' ' . number_format($transaction['amount'], 2); ?></td>
                                                 <td class="d-none d-md-table-cell"><?php echo (new DateTime($transaction['date'] ?? $transaction['transaction_date'] ?? date('Y-m-d')))->format('Y-m-d'); ?></td>
                                                 <td class="d-none d-lg-table-cell"><?php echo htmlspecialchars($transaction['payment_method']); ?></td>
@@ -921,14 +950,12 @@ include 'navCommon.php';
                                 // Format the transaction data
                                 const formattedAmount = parseFloat(transaction.amount).toFixed(2);
                                 const formattedDate = new Date(transaction.date || transaction.transaction_date || new Date()).toLocaleDateString();
-                                const feeType = transaction.fee_type || 'Payment';
                                 const currency = transaction.currency || 'USD';
 
                                 transactionsHtml += `
                                     <tr>
                                         <td>#TRX-${transaction.transaction_id}</td>
                                         <td>${transaction.traveler_name || 'Unknown'}</td>
-                                        <td>${feeType}</td>
                                         <td>${currency} ${formattedAmount}</td>
                                         <td>${formattedDate}</td>
                                         <td>${transaction.payment_method || 'N/A'}</td>
@@ -1048,7 +1075,6 @@ include 'navCommon.php';
                                                 </div>
                                                 <div class="card-body">
                                                     <p><strong>Traveler:</strong> ${transaction.traveler_name}</p>
-                                                    <p><strong>Fee Type:</strong> ${transaction.fee_type || 'Payment'}</p>
                                                     <p><strong>Amount:</strong> ${transaction.currency || 'USD'} ${parseFloat(transaction.amount).toFixed(2)}</p>
                                                     <p><strong>Status:</strong> <span class="badge ${getStatusBadgeClass(transaction.status)}">${transaction.status}</span></p>
                                                     <p><strong>Transaction Date:</strong> ${new Date(transaction.date || transaction.transaction_date || new Date()).toLocaleDateString()}</p>

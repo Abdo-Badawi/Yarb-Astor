@@ -6,6 +6,7 @@
 
     // Call the function to get all opportunities
     $opportunities = $controller->getAllOpportunities();  // This should return an array of opportunities
+
 ?>
 
 <!DOCTYPE html>
@@ -13,21 +14,12 @@
 
 <head>
     <title>Homestay Opportunities - HomeStay Admin</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="Homestay Opportunities Management for HomeStay Admin Dashboard" />
-    <meta name="keywords" content="admin, dashboard, opportunities, homestay, management">
-    <meta name="author" content="HomeStay" />
-    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/custom.css">
     <style>
         /* Card Styles */
         .opportunity-card {
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+             ;
             padding: 20px;
             margin-bottom: 25px;
             transition: all 0.3s ease;
@@ -145,10 +137,11 @@
         }
     </style>
 </head>
-
 <body class="">
-    <?php include 'navCommon.php'; ?>
-
+    <?php 
+        include 'navCommon.php'; 
+        include_once 'header-common.php'
+    ?>
     <div class="pcoded-main-container">
         <div class="pcoded-content">
             <div class="page-header">

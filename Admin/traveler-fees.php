@@ -1,30 +1,135 @@
+<?php
+// Start the session at the very beginning of the file
+session_start();
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+    header("Location: ../Common/login.php");
+    exit;
+}
+
+// Load required controllers
+require_once '../Controllers/FeeTransactionController.php';
+require_once '../Controllers/CardController.php';
+require_once '../Controllers/FeeController.php';
+
+// Instantiate the controllers
+$feeTransactionController = new FeeTransactionController();
+$cardController = new CardController();
+$feeController = new FeeController();
+
+// Get all transactions
+$transactions = $feeTransactionController->getAllTransactions();
+
+// Get all fees
+$fees = $feeController->getAllFees();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <title>Traveler Fees - HomeStay Admin</title>
-    <!-- HTML5 Shim and Respond.js IE11 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 11]>
-    	<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-    	<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    	<![endif]-->
-    <!-- Meta -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="Traveler Fees Management for HomeStay Admin Dashboard" />
-    <meta name="keywords" content="admin, dashboard, fees, management">
-    <meta name="author" content="HomeStay" />
-    <!-- Favicon icon -->
-    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
-
-    <!-- vendor css -->
-    <link rel="stylesheet" href="assets/css/style.css">
-    <!-- custom css -->
-    <link rel="stylesheet" href="assets/css/custom.css">
     <style>
         /* Custom styles for Traveler Fees */
+        .fee-card {
+
+        /* Enhanced button styling */
+        .btn-group-sm .btn {
+            border-radius: 4px;
+            margin-right: 2px;
+            margin-bottom: 2px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        .btn-group-sm .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-group-sm .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .btn-info {
+            background-color: #4099ff;
+            border-color: #4099ff;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-danger {
+            background-color: #ff5370;
+            border-color: #ff5370;
+        }
+
+        .btn-primary {
+            background-color: #2ed8b6;
+            border-color: #2ed8b6;
+        }
+
+        .btn-warning {
+            background-color: #FFB64D;
+            border-color: #FFB64D;
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #2ed8b6;
+            border-color: #2ed8b6;
+        }
+
+        /* Make all badge text white */
+        .badge {
+            color: white !important;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        /* Action button styling */
+        .btn-group-sm .btn {
+            min-width: 40px !important;
+            max-width: 40px !important;
+            text-align: center;
+            display: inline-block;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0.2rem 0.1rem;
+            font-size: 0.65rem;
+            margin-right: 2px;
+            border-radius: 3px;
+        }
+
+        .btn-group-sm .btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Ensure buttons display horizontally */
+        td .btn-sm {
+            display: inline-block;
+            margin-right: 3px;
+        }
+
+        /* Remove margin from last button in a group */
+        td .btn-sm:last-child {
+            margin-right: 0;
+        }
+
+        /* Make all action buttons the same width and center them */
+        .table td, .table th {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0.5rem 0.25rem;
+        }
+
+        /* Fee card styling */
         .fee-card {
             margin-bottom: 1.5rem;
             border-radius: 0.5rem;
@@ -277,16 +382,16 @@
 
         /* Make all action buttons the same width */
         .btn-sm {
-            min-width: 60px !important;
-            max-width: 60px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
             text-align: center;
             display: inline-block;
             box-sizing: border-box;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding: 0.375rem 0.25rem;
-            font-size: 0.75rem;
+            padding: 0.2rem 0.1rem;
+            font-size: 0.65rem;
         }
 
         /* Ensure buttons display horizontally */
@@ -337,9 +442,9 @@
 
         /* Specific style for the Fail button */
         .btn-danger.btn-sm {
-            min-width: 60px !important;
-            max-width: 60px !important;
-            padding: 0.375rem 0.25rem;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            padding: 0.2rem 0.1rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -348,23 +453,9 @@
 </head>
 <body class="">
 
-<?php
-require_once '../Controllers/FeeTransactionController.php';
-require_once '../Controllers/CardController.php';
-require_once '../Controllers/FeeController.php';
-
-// Instantiate the controllers
-$feeTransactionController = new FeeTransactionController();
-$cardController = new CardController();
-$feeController = new FeeController();
-
-// Get all transactions
-$transactions = $feeTransactionController->getAllTransactions();
-
-// Get all fees
-$fees = $feeController->getAllFees();
-
-include 'navCommon.php';
+<?php 
+    include 'navCommon.php'; 
+    include_once 'header-common.php'
 ?>
 
 <!-- [ Main Content ] start -->
@@ -409,23 +500,13 @@ include 'navCommon.php';
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="feeType">Fee Type <span class="text-danger">*</span></label>
-                                        <select class="form-control" id="feeType" required>
-                                            <option value="fixed">Fixed Amount</option>
-                                            <option value="percentage">Percentage</option>
-                                            <option value="tiered">Tiered</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
                                         <label for="feeAmount">Amount <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" id="feeAmount" placeholder="Enter fee amount" step="0.01" min="0" required>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                            </div>
+                            <div class="row">
+                            <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="feeCurrency">Currency</label>
                                         <select class="form-control" id="feeCurrency">
@@ -441,25 +522,12 @@ include 'navCommon.php';
                                         </select>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="feeStatus">Status</label>
                                         <select class="form-control" id="feeStatus">
                                             <option value="active">Active</option>
                                             <option value="inactive">Inactive</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="feeApplicability">Applicability</label>
-                                        <select class="form-control" id="feeApplicability">
-                                            <option value="all">All Travelers</option>
-                                            <option value="new">New Travelers Only</option>
-                                            <option value="returning">Returning Travelers Only</option>
-                                            <option value="premium">Premium Members Only</option>
                                         </select>
                                     </div>
                                 </div>
@@ -499,7 +567,7 @@ include 'navCommon.php';
                                     <tr>
                                         <th>ID</th>
                                         <th>Fee Name</th>
-                                        <th>Type</th>
+
                                         <th>Amount</th>
                                         <th>Applicability</th>
                                         <th>Mandatory</th>
@@ -518,31 +586,9 @@ include 'navCommon.php';
                                     <tr>
                                         <td>#FEE-<?php echo $fee['fee_id']; ?></td>
                                         <td><?php echo htmlspecialchars($fee['fee_name']); ?></td>
+
                                         <td>
-                                            <?php
-                                            $feeTypeLabel = '';
-                                            switch ($fee['fee_type']) {
-                                                case 'fixed':
-                                                    $feeTypeLabel = 'Fixed Amount';
-                                                    break;
-                                                case 'percentage':
-                                                    $feeTypeLabel = 'Percentage';
-                                                    break;
-                                                case 'tiered':
-                                                    $feeTypeLabel = 'Tiered';
-                                                    break;
-                                            }
-                                            echo $feeTypeLabel;
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <?php
-                                            if ($fee['fee_type'] === 'percentage') {
-                                                echo $fee['amount'] . '%';
-                                            } else {
-                                                echo $fee['currency'] . ' ' . number_format($fee['amount'], 2);
-                                            }
-                                            ?>
+                                            <?php echo $fee['currency'] . ' ' . number_format($fee['amount'], 2); ?>
                                         </td>
                                         <td>
                                             <?php
@@ -580,12 +626,26 @@ include 'navCommon.php';
                                         </td>
                                         <td><?php echo htmlspecialchars($fee['created_by_name'] ?? 'Admin'); ?></td>
                                         <td>
-                                            <button class="btn btn-info btn-sm" onclick="viewFee(<?php echo $fee['fee_id']; ?>)">View</button>
-                                            <button class="btn btn-secondary btn-sm" onclick="editFee(<?php echo $fee['fee_id']; ?>)">Edit</button>
-                                            <button class="btn btn-danger btn-sm" onclick="deleteFee(<?php echo $fee['fee_id']; ?>)">Delete</button>
-                                            <?php if ($fee['status'] === 'active'): ?>
-                                            <button class="btn btn-primary btn-sm" onclick="assignFee(<?php echo $fee['fee_id']; ?>)">Assign</button>
-                                            <?php endif; ?>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-success" onclick="viewFee(<?php echo $fee['fee_id']; ?>)">
+                                                    <i class="feather icon-eye d-md-none"></i>
+                                                    <span class="d-none d-md-inline">View</span>
+                                                </button>
+                                                <button class="btn btn-secondary" onclick="editFee(<?php echo $fee['fee_id']; ?>)">
+                                                    <i class="feather icon-edit-2 d-md-none"></i>
+                                                    <span class="d-none d-md-inline">Edit</span>
+                                                </button>
+                                                <button class="btn btn-danger" onclick="deleteFee(<?php echo $fee['fee_id']; ?>)">
+                                                    <i class="feather icon-trash-2 d-md-none"></i>
+                                                    <span class="d-none d-md-inline">Delete</span>
+                                                </button>
+                                                <?php if ($fee['status'] === 'active'): ?>
+                                                <button class="btn btn-primary" onclick="assignFee(<?php echo $fee['fee_id']; ?>)">
+                                                    <i class="feather icon-user-plus d-md-none"></i>
+                                                    <span class="d-none d-md-inline">Assign</span>
+                                                </button>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -662,7 +722,6 @@ include 'navCommon.php';
             // Get form values
             const feeId = document.getElementById('feeId').value;
             const feeName = document.getElementById('feeName').value;
-            const feeType = document.getElementById('feeType').value;
             const feeAmount = document.getElementById('feeAmount').value;
             const feeCurrency = document.getElementById('feeCurrency').value;
             const feeStatus = document.getElementById('feeStatus').value;
@@ -671,7 +730,7 @@ include 'navCommon.php';
             const feeMandatory = document.getElementById('feeMandatory').checked;
 
             // Validate form
-            if (!feeName || !feeType || !feeAmount) {
+            if (!feeName || !feeAmount) {
                 alert('Please fill in all required fields');
                 return;
             }
@@ -679,7 +738,7 @@ include 'navCommon.php';
             // Create fee data
             const feeData = {
                 fee_name: feeName,
-                fee_type: feeType,
+                fee_type: 'fixed', // Default to fixed type
                 amount: parseFloat(feeAmount),
                 currency: feeCurrency,
                 status: feeStatus,
@@ -777,8 +836,7 @@ include 'navCommon.php';
                                                 <div class="card-body">
                                                     <p><strong>Fee ID:</strong> #FEE-${fee.fee_id}</p>
                                                     <p><strong>Fee Name:</strong> ${fee.fee_name}</p>
-                                                    <p><strong>Fee Type:</strong> ${fee.fee_type === 'fixed' ? 'Fixed Amount' : fee.fee_type === 'percentage' ? 'Percentage' : 'Tiered'}</p>
-                                                    <p><strong>Amount:</strong> ${fee.fee_type === 'percentage' ? fee.amount + '%' : fee.currency + ' ' + parseFloat(fee.amount).toFixed(2)}</p>
+                                                    <p><strong>Amount:</strong> ${fee.currency + ' ' + parseFloat(fee.amount).toFixed(2)}</p>
                                                     <p><strong>Status:</strong> <span class="badge ${fee.status === 'active' ? 'badge-success' : 'badge-secondary'}">${fee.status === 'active' ? 'Active' : 'Inactive'}</span></p>
                                                 </div>
                                             </div>
@@ -853,7 +911,6 @@ include 'navCommon.php';
                     // Populate the form with fee data
                     document.getElementById('feeId').value = fee.fee_id;
                     document.getElementById('feeName').value = fee.fee_name;
-                    document.getElementById('feeType').value = fee.fee_type;
                     document.getElementById('feeAmount').value = fee.amount;
                     document.getElementById('feeCurrency').value = fee.currency;
                     document.getElementById('feeStatus').value = fee.status;
@@ -1677,5 +1734,4 @@ include 'navCommon.php';
         });
     </script>
 </body>
-
 </html>

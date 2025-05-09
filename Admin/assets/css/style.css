@@ -17551,7 +17551,7 @@ a.text-dark:hover, a.text-dark:focus {
 
 .card .card-header h5 {
     margin-bottom: 0;
-    color: #37474f;
+    color: #fff;
     font-size: 0.9375rem;
     font-weight: 600;
     display: inline-block;
