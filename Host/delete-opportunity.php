@@ -38,3 +38,5 @@ if ($result) {
     echo json_encode(['success' => false, 'error' => 'Failed to delete the opportunity.']);
 }
 ?>
+
+

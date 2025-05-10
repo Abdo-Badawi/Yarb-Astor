@@ -21,22 +21,18 @@
                     <div class="col-md-6 col-lg-6 col-xl-3">
                         <div class="footer-item d-flex flex-column">
                             <h4 class="mb-4 text-white">Company</h4>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> About</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Careers</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Blog</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Press</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Gift Cards</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Magazine</a>
+                            <a href="about.php"><i class="fas fa-angle-right me-2"></i> About</a>
+                            <a href="index.php"><i class="fas fa-angle-right me-2"></i> Home</a>
+                            <a href="contact.php"><i class="fas fa-angle-right me-2"></i> Contact</a>
+                            <a href="login.php"><i class="fas fa-angle-right me-2"></i> Login</a>
+                            <a href="register.php"><i class="fas fa-angle-right me-2"></i> Register</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">
                         <div class="footer-item d-flex flex-column">
                             <h4 class="mb-4 text-white">Support</h4>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Contact</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Legal Notice</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Privacy Policy</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Terms and Conditions</a>
-                            <a href=""><i class="fas fa-angle-right me-2"></i> Sitemap</a>
+                            <a href="FAQuestion.php"><i class="fas fa-angle-right me-2"></i> FAQ</a>
+                            <a href="contact.php"><i class="fas fa-angle-right me-2"></i> Contact</a>
                             <a href=""><i class="fas fa-angle-right me-2"></i> Cookie policy</a>
                         </div>
                     </div>
@@ -98,3 +94,5 @@
 
         <!-- Back to Top -->
         <a href="#" class="btn btn-primary btn-primary-outline-0 btn-md-square back-to-top"><i class="fa fa-arrow-up"></i></a>  
+
+

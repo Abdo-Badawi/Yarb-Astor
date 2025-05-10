@@ -282,14 +282,11 @@ if ($hostID) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Remove the opportunity card from the DOM
-                    const card = document.querySelector(`.opportunity-card[data-id="${id}"]`);
-                    if (card) {
-                        card.closest('.col-lg-6').remove();
-                    }
                     alert('Opportunity deleted successfully!');
+                    // Reload the page to refresh the opportunities list
+                    location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
@@ -362,6 +359,7 @@ if ($hostID) {
 
 </body>
 </html>
+
 
 
 

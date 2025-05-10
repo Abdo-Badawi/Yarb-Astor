@@ -32,6 +32,7 @@ $fees = $feeController->getAllFees();
     <style>
         /* Custom styles for Traveler Fees */
         .fee-card {
+        }
 
         /* Enhanced button styling */
         .btn-group-sm .btn {

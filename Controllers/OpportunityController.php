@@ -139,14 +139,19 @@ class OpportunityController {
 
     // Function to delete an opportunity
     public function deleteOpportunity(int $opportunityId): bool {
-        $sql = "UPDATE opportunity SET status = 'deleted' WHERE opportunity_id = ?";
-
-        $params = [$opportunityId];
-
+        // First, delete any applications associated with this opportunity
+        $sqlApplications = "DELETE FROM applications WHERE opportunity_id = ?";
+        
         $this->db->openConnection();
-        $result = $this->db->update($sql, "i", $params);
+        $this->db->delete($sqlApplications, "i", [$opportunityId]);
+        
+        // Then delete the opportunity itself
+        $sql = "DELETE FROM opportunity WHERE opportunity_id = ?";
+        
+        $params = [$opportunityId];
+        $result = $this->db->delete($sql, "i", $params);
         $this->db->closeConnection();
-
+        
         return $result;
     }
 
@@ -264,3 +269,5 @@ class OpportunityController {
     }
 }
 ?>
+
+

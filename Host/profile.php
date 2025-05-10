@@ -1,7 +1,7 @@
 <?php
 session_start();
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
 }
@@ -162,3 +162,4 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+
