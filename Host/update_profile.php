@@ -1,18 +1,17 @@
 <?php
+// Add error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 session_start();
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
 }
 include_once '../Controllers/ProfileController.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['userID'])) {
-    header("Location: ../login.php");
-    exit;
-}
+include_once '../Controllers/DBController.php';
 
 $userId = $_SESSION['userID'];
 
@@ -23,18 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Collect form data
     $userData = [
-        'first_name' => $_POST['first_name'],
-        'last_name' => $_POST['last_name'],
-        'email' => $_POST['email'],
-        'phone_number' => $_POST['phone_number'],
-        'preferred_language' => $_POST['preferred_language'],
-        'bio' => $_POST['bio'],
-        'location' => $_POST['location'],
-        'property_type' => $_POST['property_type']
+        'first_name' => $_POST['first_name'] ?? '',
+        'last_name' => $_POST['last_name'] ?? '',
+        'email' => $_POST['email'] ?? '',
+        'phone_number' => $_POST['phone_number'] ?? '',
+        'preferred_language' => $_POST['preferred_language'] ?? '',
+        'bio' => $_POST['bio'] ?? '',
+        'location' => $_POST['location'] ?? '',
+        'property_type' => $_POST['property_type'] ?? ''
     ];
     
     // Check if email is being changed and validate it's unique
-    if ($_POST['email'] !== $userData['email']) {
+    if (isset($_SESSION['email']) && $_POST['email'] !== $_SESSION['email']) {
         // Create a new DB connection to check email
         $db = new DBController();
         if ($db->openConnection()) {
@@ -79,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($result) {
         // Update session email if it was changed
-        if ($_SESSION['email'] !== $_POST['email']) {
+        if (isset($_SESSION['email']) && $_SESSION['email'] !== $_POST['email']) {
             $_SESSION['email'] = $_POST['email'];
         }
         $_SESSION['success_message'] = "Profile updated successfully!";
@@ -92,5 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 ?>
+
 
 

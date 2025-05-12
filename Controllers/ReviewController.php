@@ -1,25 +1,48 @@
 <?php
-// Start session at the very beginning
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Enable error reporting for development
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
-error_reporting(E_ALL);
-
-include_once '../Controllers/DBController.php';
-include_once '../Controllers/AuthController.php';
-
+require_once 'DBController.php';
+require_once '../Models/Review.php';
+use Models\Review;
 
 class ReviewController {
     private $db;
-
+    private $reviewModel;
+    
     public function __construct() {
         $this->db = new DBController();
+        $this->reviewModel = new Review();
     }
-
+    
+    /**
+     * Create a new review
+     * 
+     * @param array $reviewData Review data
+     * @return int|bool Review ID if successful, false otherwise
+     */
+    public function createReview(array $reviewData): int|bool {
+        if (!isset($_SESSION['userID'])) {
+            return ['error' => 'User not logged in'];
+        }
+        
+        // Check if user has already reviewed this opportunity
+        if ($this->reviewModel->hasReviewed($reviewData['sender_id'], $reviewData['opportunity_id'])) {
+            return ['error' => 'You have already reviewed this opportunity'];
+        }
+        
+        $this->reviewModel->SenderID = $reviewData['sender_id'];
+        $this->reviewModel->ReceiverID = $reviewData['receiver_id'];
+        $this->reviewModel->OpportunityID = $reviewData['opportunity_id'];
+        $this->reviewModel->Rating = $reviewData['rating'];
+        $this->reviewModel->Comment = $reviewData['comment'];
+        
+        return $this->reviewModel->save();
+    }
+    
+    /**
+     * Get reviews by user ID (either as sender or receiver)
+     * 
+     * @param int $userId User ID
+     * @return array List of reviews with user and opportunity details
+     */
     public function getReviewsByUser($userId) {
         if (!$this->db->openConnection()) {
             return ['error' => 'Database connection failed'];
@@ -50,7 +73,13 @@ class ReviewController {
 
         return $result;
     }
-
+    
+    /**
+     * Get review by ID
+     * 
+     * @param int $reviewId Review ID
+     * @return array Review details with user and opportunity information
+     */
     public function getReviewById($reviewId) {
         if (!$this->db->openConnection()) {
             return ['error' => 'Database connection failed'];
@@ -79,14 +108,18 @@ class ReviewController {
                 return ['error' => 'Failed to fetch review'];
             }
 
-            return count($result) > 0 ? $result[0] : null;
+            return $result[0] ?? ['error' => 'Review not found'];
         } catch (Exception $e) {
-            error_log("Error in getReviewById: " . $e->getMessage());
             $this->db->closeConnection();
-            return ['error' => 'An error occurred while fetching the review'];
+            return ['error' => 'An error occurred: ' . $e->getMessage()];
         }
     }
-
+    
+    /**
+     * Get all reviews
+     * 
+     * @return array List of all reviews with user and opportunity details
+     */
     public function getAllReviews() {
         if (!$this->db->openConnection()) {
             return ['error' => 'Database connection failed'];
@@ -116,7 +149,15 @@ class ReviewController {
 
         return $result;
     }
-
+    
+    /**
+     * Update a review
+     * 
+     * @param int $reviewId Review ID
+     * @param float $rating New rating
+     * @param string $comment New comment
+     * @return array Result of the update operation
+     */
     public function updateReview($reviewId, $rating, $comment) {
         if (!isset($_SESSION['userID'])) {
             return ['error' => 'User not logged in'];
@@ -129,10 +170,10 @@ class ReviewController {
         try {
             // First check if the review exists and belongs to the current user
             $checkQuery = "SELECT sender_id FROM review WHERE review_id = ?";
-            $checkStmt = $this->db->conn->prepare($checkQuery);
+            $checkStmt = $this->db->getConnection()->prepare($checkQuery);
             if (!$checkStmt) {
                 $this->db->closeConnection();
-                return ['error' => 'Failed to prepare check statement: ' . $this->db->conn->error];
+                return ['error' => 'Failed to prepare check statement: ' . $this->db->getConnection()->error];
             }
 
             $checkStmt->bind_param("i", $reviewId);
@@ -155,13 +196,13 @@ class ReviewController {
 
             // If checks pass, proceed with update
             $updateQuery = "UPDATE review SET rating = ?, comment = ? WHERE review_id = ?";
-            $updateStmt = $this->db->conn->prepare($updateQuery);
+            $updateStmt = $this->db->getConnection()->prepare($updateQuery);
             if (!$updateStmt) {
                 $this->db->closeConnection();
-                return ['error' => 'Failed to prepare update statement: ' . $this->db->conn->error];
+                return ['error' => 'Failed to prepare update statement: ' . $this->db->getConnection()->error];
             }
 
-            $updateStmt->bind_param("isi", $rating, $comment, $reviewId);
+            $updateStmt->bind_param("dsi", $rating, $comment, $reviewId);
             
             if ($updateStmt->execute()) {
                 $this->db->closeConnection();
@@ -176,7 +217,13 @@ class ReviewController {
             return ['error' => 'An error occurred while updating the review: ' . $e->getMessage()];
         }
     }
-
+    
+    /**
+     * Delete a review
+     * 
+     * @param int $reviewId Review ID
+     * @return array Result of the delete operation
+     */
     public function deleteReview($reviewId) {
         if (!isset($_SESSION['userID'])) {
             return ['error' => 'User not logged in'];
@@ -188,12 +235,12 @@ class ReviewController {
 
         try {
             // First check if the review exists and belongs to the current user
-            $checkQuery = "SELECT sender_id, status FROM review WHERE review_id = ?";
-            $checkStmt = $this->db->conn->prepare($checkQuery);
+            $checkQuery = "SELECT sender_id, is_reported FROM review WHERE review_id = ?";
+            $checkStmt = $this->db->getConnection()->prepare($checkQuery);
 
             if (!$checkStmt) {
                 $this->db->closeConnection();
-                return ['error' => 'Failed to prepare check statement: ' . $this->db->conn->error];
+                return ['error' => 'Failed to prepare check statement: ' . $this->db->getConnection()->error];
             }
 
             $checkStmt->bind_param("i", $reviewId);
@@ -215,17 +262,17 @@ class ReviewController {
             }
 
             // Check if review is already reported
-            if ($review['status'] === 'reported') {
+            if (isset($review['is_reported']) && $review['is_reported'] == 1) {
                 $this->db->closeConnection();
                 return ['error' => 'Cannot delete a reported review'];
             }
 
             // Delete the review
             $deleteQuery = "DELETE FROM review WHERE review_id = ?";
-            $deleteStmt = $this->db->conn->prepare($deleteQuery);
+            $deleteStmt = $this->db->getConnection()->prepare($deleteQuery);
             if (!$deleteStmt) {
                 $this->db->closeConnection();
-                return ['error' => 'Failed to prepare delete statement: ' . $this->db->conn->error];
+                return ['error' => 'Failed to prepare delete statement: ' . $this->db->getConnection()->error];
             }
 
             $deleteStmt->bind_param("i", $reviewId);
@@ -241,6 +288,68 @@ class ReviewController {
             error_log("Error deleting review: " . $e->getMessage());
             $this->db->closeConnection();
             return ['error' => 'An error occurred while deleting the review: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Report a review
+     * 
+     * @param int $reviewId Review ID
+     * @param string $reason Reason for reporting
+     * @return array Result of the report operation
+     */
+    public function reportReview($reviewId, $reason) {
+        if (!isset($_SESSION['userID'])) {
+            return ['error' => 'User not logged in'];
+        }
+
+        if (!$this->db->openConnection()) {
+            return ['error' => 'Database connection failed'];
+        }
+
+        try {
+            // First check if the review exists
+            $checkQuery = "SELECT review_id FROM review WHERE review_id = ?";
+            $checkStmt = $this->db->getConnection()->prepare($checkQuery);
+
+            if (!$checkStmt) {
+                $this->db->closeConnection();
+                return ['error' => 'Failed to prepare check statement: ' . $this->db->getConnection()->error];
+            }
+
+            $checkStmt->bind_param("i", $reviewId);
+            if (!$checkStmt->execute()) {
+                $this->db->closeConnection();
+                return ['error' => 'Failed to execute check statement: ' . $checkStmt->error];
+            }
+
+            $result = $checkStmt->get_result();
+            if ($result->num_rows === 0) {
+                $this->db->closeConnection();
+                return ['error' => 'Review not found'];
+            }
+
+            // Mark the review as reported
+            $updateQuery = "UPDATE review SET is_reported = 1 WHERE review_id = ?";
+            $updateStmt = $this->db->getConnection()->prepare($updateQuery);
+            if (!$updateStmt) {
+                $this->db->closeConnection();
+                return ['error' => 'Failed to prepare update statement: ' . $this->db->getConnection()->error];
+            }
+
+            $updateStmt->bind_param("i", $reviewId);
+            
+            if ($updateStmt->execute()) {
+                $this->db->closeConnection();
+                return ['success' => true];
+            } else {
+                $this->db->closeConnection();
+                return ['error' => 'Failed to report review: ' . $updateStmt->error];
+            }
+        } catch (Exception $e) {
+            error_log("Error reporting review: " . $e->getMessage());
+            $this->db->closeConnection();
+            return ['error' => 'An error occurred while reporting the review: ' . $e->getMessage()];
         }
     }
 }

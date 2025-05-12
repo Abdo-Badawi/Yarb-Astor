@@ -5,20 +5,32 @@
  * Controller for handling admin dashboard data and functionality
  */
 require_once 'DBController.php';
+require_once '../Models/Admin.php';
 
 class AdminDashboardController {
     private $db;
+    private $adminModel;
 
     public function __construct() {
         $this->db = new DBController();
+        $this->adminModel = new Models\Admin();
     }
 
     /**
      * Get all dashboard data for admin
      *
+     * @param int $adminId Admin ID
      * @return array Dashboard data including stats and recent activities
      */
-    public function getDashboardData(): array {
+    public function getDashboardData(int $adminId = 0): array {
+        // Check if admin has permission to view dashboard
+        if ($adminId > 0) {
+            $admin = $this->adminModel->getAdminById($adminId);
+            if (!$admin) {
+                return ['error' => 'Admin not found'];
+            }
+        }
+        
         $dashboardData = [
             'stats' => $this->getStats(),
             'recentActivity' => $this->getRecentActivity(),
@@ -42,77 +54,35 @@ class AdminDashboardController {
         $hostsQuery = "SELECT COUNT(*) as total_hosts FROM users WHERE user_type = 'host'";
         $hostsResult = $this->db->select($hostsQuery);
         $totalHosts = $hostsResult[0]['total_hosts'] ?? 0;
-
-        // Get hosts growth (last 30 days)
-        $hostsGrowthQuery = "SELECT
-            COUNT(*) as new_hosts,
-            (SELECT COUNT(*) FROM users WHERE user_type = 'host' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_hosts
-            FROM users
-            WHERE user_type = 'host' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $hostsGrowthResult = $this->db->select($hostsGrowthQuery);
-        $newHosts = $hostsGrowthResult[0]['new_hosts'] ?? 0;
-        $oldHosts = $hostsGrowthResult[0]['old_hosts'] ?? 1; // Prevent division by zero
-        $hostsGrowth = ($oldHosts > 0) ? round(($newHosts / $oldHosts) * 100) : 0;
-
+        
         // Get total travelers count
         $travelersQuery = "SELECT COUNT(*) as total_travelers FROM users WHERE user_type = 'traveler'";
         $travelersResult = $this->db->select($travelersQuery);
         $totalTravelers = $travelersResult[0]['total_travelers'] ?? 0;
-
-        // Get travelers growth (last 30 days)
-        $travelersGrowthQuery = "SELECT
-            COUNT(*) as new_travelers,
-            (SELECT COUNT(*) FROM users WHERE user_type = 'traveler' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_travelers
-            FROM users
-            WHERE user_type = 'traveler' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $travelersGrowthResult = $this->db->select($travelersGrowthQuery);
-        $newTravelers = $travelersGrowthResult[0]['new_travelers'] ?? 0;
-        $oldTravelers = $travelersGrowthResult[0]['old_travelers'] ?? 1; // Prevent division by zero
-        $travelersGrowth = ($oldTravelers > 0) ? round(($newTravelers / $oldTravelers) * 100) : 0;
-
-        // Get active homestays count
-        $homestaysQuery = "SELECT COUNT(*) as active_homestays FROM opportunity WHERE status = 'open'";
-        $homestaysResult = $this->db->select($homestaysQuery);
-        $activeHomestays = $homestaysResult[0]['active_homestays'] ?? 0;
-
-        // Get homestays growth (last 30 days)
-        $homestaysGrowthQuery = "SELECT
-            COUNT(*) as new_homestays,
-            (SELECT COUNT(*) FROM opportunity WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_homestays
-            FROM opportunity
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $homestaysGrowthResult = $this->db->select($homestaysGrowthQuery);
-        $newHomestays = $homestaysGrowthResult[0]['new_homestays'] ?? 0;
-        $oldHomestays = $homestaysGrowthResult[0]['old_homestays'] ?? 1; // Prevent division by zero
-        $homestaysGrowth = ($oldHomestays > 0) ? round(($newHomestays / $oldHomestays) * 100) : 0;
-
-        // Get pending applications count
-        $applicationsQuery = "SELECT COUNT(*) as pending_applications FROM applications WHERE status = 'pending'";
-        $applicationsResult = $this->db->select($applicationsQuery);
-        $pendingApplications = $applicationsResult[0]['pending_applications'] ?? 0;
-
-        // Get applications growth (last 30 days)
-        $applicationsGrowthQuery = "SELECT
-            COUNT(*) as new_applications,
-            (SELECT COUNT(*) FROM applications WHERE applied_date < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_applications
-            FROM applications
-            WHERE applied_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $applicationsGrowthResult = $this->db->select($applicationsGrowthQuery);
-        $newApplications = $applicationsGrowthResult[0]['new_applications'] ?? 0;
-        $oldApplications = $applicationsGrowthResult[0]['old_applications'] ?? 1; // Prevent division by zero
-        $applicationsGrowth = ($oldApplications > 0) ? round(($newApplications / $oldApplications) * 100) : 0;
-
+        
+        // Get total opportunities count
+        $opportunitiesQuery = "SELECT COUNT(*) as total_opportunities FROM opportunity";
+        $opportunitiesResult = $this->db->select($opportunitiesQuery);
+        $totalOpportunities = $opportunitiesResult[0]['total_opportunities'] ?? 0;
+        
+        // Get total bookings count
+        $bookingsQuery = "SELECT COUNT(*) as total_bookings FROM booking";
+        $bookingsResult = $this->db->select($bookingsQuery);
+        $totalBookings = $bookingsResult[0]['total_bookings'] ?? 0;
+        
+        // Get total revenue
+        $revenueQuery = "SELECT SUM(amount) as total_revenue FROM fee_transaction WHERE status = 'completed'";
+        $revenueResult = $this->db->select($revenueQuery);
+        $totalRevenue = $revenueResult[0]['total_revenue'] ?? 0;
+        
         $this->db->closeConnection();
-
+        
         return [
             'totalHosts' => $totalHosts,
-            'hostsGrowth' => $hostsGrowth,
             'totalTravelers' => $totalTravelers,
-            'travelersGrowth' => $travelersGrowth,
-            'activeHomestays' => $activeHomestays,
-            'homestaysGrowth' => $homestaysGrowth,
-            'pendingApplications' => $pendingApplications,
-            'applicationsGrowth' => $applicationsGrowth
+            'totalOpportunities' => $totalOpportunities,
+            'totalBookings' => $totalBookings,
+            'totalRevenue' => $totalRevenue
         ];
     }
 
@@ -196,7 +166,7 @@ class AdminDashboardController {
 
         return $result ?: [];
     }
-
+    
     /**
      * Get recent opportunities
      *
@@ -219,5 +189,29 @@ class AdminDashboardController {
 
         return $result ?: [];
     }
+    
+    /**
+     * Log admin activity
+     *
+     * @param int $adminId Admin ID
+     * @param string $action Action performed
+     * @param string $details Additional details
+     * @return bool True if logged successfully, false otherwise
+     */
+    public function logAdminActivity(int $adminId, string $action, string $details = ''): bool {
+        $this->db->openConnection();
+        
+        $query = "INSERT INTO admin_activity_log (admin_id, action, details, created_at) 
+                 VALUES (?, ?, ?, NOW())";
+        
+        $params = [$adminId, $action, $details];
+        $result = $this->db->insert($query, "iss", $params);
+        
+        $this->db->closeConnection();
+        
+        return $result;
+    }
 }
 ?>
+
+

@@ -56,10 +56,17 @@ if (!$userData) {
                         <!-- Profile Picture Upload -->
                         <form action="upload_profile_pic.php" method="post" enctype="multipart/form-data">
                             <div class="d-flex flex-column align-items-center">
-                                <img src="../Controllers/GetProfileImg.php?user_id=<?= $userData['host_id'] ?>"
-                                     class="rounded-circle mb-3 img-fluid"
-                                     style="width: 150px; height: 150px; object-fit: cover;"
-                                     alt="Profile Picture">
+                                <?php if (!empty($userData['profile_picture'])): ?>
+                                    <img src="../Controllers/GetProfileImg.php?user_id=<?= $userData['host_id'] ?>"
+                                         class="rounded-circle mb-3 img-fluid"
+                                         style="width: 150px; height: 150px; object-fit: cover;"
+                                         alt="Profile Picture">
+                                <?php else: ?>
+                                    <img src="../img/default-profile.jpg"
+                                         class="rounded-circle mb-3 img-fluid"
+                                         style="width: 150px; height: 150px; object-fit: cover;"
+                                         alt="Profile Picture">
+                                <?php endif; ?>
                             </div>
                         </form>
 
@@ -67,9 +74,9 @@ if (!$userData) {
                         <h6 style="text-transform: uppercase;" class="text-muted mb-3"><i class="bi bi-person-fill"></i> <?= htmlspecialchars($userData['user_type']) ?></h6>
                         <div class="d-flex justify-content-center mb-3">
                             <div class="me-3">
-                                <h5 class="mb-3"><i class="bi bi-stars"></i> <?= htmlspecialchars($userData['rate']) ?></h5>
-                                <p class="mb-0" style="text-transform:uppercase;font-weight:bold; color: <?= $userData['status'] === 'active' ? 'green' : ($userData['status'] === 'reported' ? 'red' : 'black') ?>">
-                                    <?= htmlspecialchars($userData['status']) ?>
+                                <h5 class="mb-3"><i class="bi bi-stars"></i> <?= htmlspecialchars($userData['rate'] ?? '0.0') ?></h5>
+                                <p class="mb-0" style="text-transform:uppercase;font-weight:bold; color: <?= isset($userData['status']) ? ($userData['status'] === 'active' ? 'green' : ($userData['status'] === 'reported' ? 'red' : 'black')) : 'black' ?>">
+                                    <?= htmlspecialchars($userData['status'] ?? 'active') ?>
                                 </p>
                             </div>
                         </div>
@@ -162,4 +169,6 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+
+
 

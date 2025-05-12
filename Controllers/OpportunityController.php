@@ -1,5 +1,7 @@
 <?php
 require_once 'DBController.php';
+require_once '../Models/Opportunity.php';
+use Models\Opportunity;
 
 class OpportunityController {
     private $db;
@@ -42,7 +44,22 @@ class OpportunityController {
         return $result;
     }
 
-    // Function to get opportunity by ID
+    /**
+     * Save opportunity to database
+     * 
+     * @param Opportunity $opportunity Opportunity object
+     * @return int|bool Opportunity ID if successful, false otherwise
+     */
+    public function saveOpportunityToDB(Opportunity $opportunity): int|bool {
+        return $opportunity->save();
+    }
+
+    /**
+     * Get opportunity by ID
+     * 
+     * @param int $opportunityId Opportunity ID
+     * @return array|null Opportunity data as array if found, null otherwise
+     */
     public function getOpportunityById(int $opportunityId): ?array {
         $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture
                 FROM opportunity o
@@ -58,24 +75,14 @@ class OpportunityController {
         return $result[0] ?? null;
     }
 
-    // Function to get active opportunities
-    public function getActiveOpportunities(): array {
-        $currentDate = date('Y-m-d');
-
-        $sql = "SELECT o.*, u.first_name, u.last_name
-                FROM opportunity o
-                JOIN users u ON o.host_id = u.user_id
-                WHERE o.status = 'open'
-                AND o.end_date >= ?
-                ORDER BY o.created_at DESC";
-
-        $params = [$currentDate];
-
-        $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "s", $params);
-        $this->db->closeConnection();
-
-        return $result ?: [];
+    /**
+     * Get active opportunities
+     * 
+     * @param array $filters Optional filters for the opportunities
+     * @return array Array of active opportunities
+     */
+    public function getActiveOpportunities(array $filters = []): array {
+        return Opportunity::getActive($filters);
     }
 
     // Function to get opportunities that a traveler has applied to
@@ -126,148 +133,87 @@ class OpportunityController {
 
     // Function to get opportunities by host ID
     public function getOpportunitiesByHostID(int $hostID): array {
-        $sql = "SELECT * FROM opportunity WHERE host_id = ? ORDER BY created_at DESC";
-
-        $params = [$hostID];
-
-        $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "i", $params);
-        $this->db->closeConnection();
-
-        return $result ?: [];
+        return Opportunity::getByHostId($hostID);
     }
 
-    // Function to delete an opportunity
+    /**
+     * Delete an opportunity
+     * 
+     * @param int $opportunityId Opportunity ID
+     * @return bool True if deletion successful, false otherwise
+     */
     public function deleteOpportunity(int $opportunityId): bool {
-        // First, delete any applications associated with this opportunity
-        $sqlApplications = "DELETE FROM applications WHERE opportunity_id = ?";
-        
-        $this->db->openConnection();
-        $this->db->delete($sqlApplications, "i", [$opportunityId]);
-        
-        // Then delete the opportunity itself
-        $sql = "DELETE FROM opportunity WHERE opportunity_id = ?";
-        
-        $params = [$opportunityId];
-        $result = $this->db->delete($sql, "i", $params);
-        $this->db->closeConnection();
-        
-        return $result;
-    }
-
-    // Function to update opportunity status
-    public function updateOpportunityStatus(int $opportunityId, string $status): bool {
-        $sql = "UPDATE opportunity SET status = ? WHERE opportunity_id = ?";
-
-        $params = [$status, $opportunityId];
-
-        $this->db->openConnection();
-        $result = $this->db->update($sql, "si", $params);
-        $this->db->closeConnection();
-
-        return $result;
-    }
-
-    // Function to update an opportunity
-    public function updateOpportunity(array $opportunityData): bool {
-        $sql = "UPDATE opportunity SET
-                title = ?,
-                description = ?,
-                location = ?,
-                start_date = ?,
-                end_date = ?,
-                category = ?,
-                requirements = ?,
-                opportunity_photo = ?
-                WHERE opportunity_id = ?";
-
-        $params = [
-            $opportunityData['title'],
-            $opportunityData['description'],
-            $opportunityData['location'],
-            $opportunityData['start_date'],
-            $opportunityData['end_date'],
-            $opportunityData['category'],
-            $opportunityData['requirements'],
-            $opportunityData['image_path'],
-            $opportunityData['opportunity_id']
-        ];
-
-        $this->db->openConnection();
-        $result = $this->db->update($sql, "ssssssssi", $params);
-        $this->db->closeConnection();
-
-        return $result;
-    }
-
-    // Function to get all opportunities
-    public function getAllOpportunities(): array {
-        $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture
-                FROM opportunity o
-                JOIN users u ON o.host_id = u.user_id
-                ORDER BY o.created_at DESC";
-
-        $this->db->openConnection();
-        $result = $this->db->select($sql);
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
-    public function saveOpportunityToDB($opportunity) {
-        try {
-            // Ensure database connection is established
-            $this->db->openConnection();
-
-            // Get image path
-            $imagePath = $opportunity->getImagePath();
-
-            // Debug information
-            error_log("Image path: " . ($imagePath ?? 'null'));
-
-            // Prepare the SQL statement with the correct column name "opportunity_photo"
-            $sql = "INSERT INTO opportunity (title, description, location, start_date, end_date, category, opportunity_photo, requirements, host_id, status, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NOW())";
-
-            // Format dates for MySQL
-            $startDate = $opportunity->getStartDate()->format('Y-m-d');
-            $endDate = $opportunity->getEndDate()->format('Y-m-d');
-
-            // Set parameters
-            $params = [
-                $opportunity->getTitle(),
-                $opportunity->getDescription(),
-                $opportunity->getLocation(),
-                $startDate,
-                $endDate,
-                $opportunity->getCategory(),
-                $imagePath,
-                $opportunity->getRequirements(),
-                $opportunity->getHostId()
-            ];
-
-            // Debug information
-            error_log("Saving opportunity with params: " . print_r($params, true));
-
-            // Execute the query
-            $result = $this->db->insert($sql, "ssssssssi", $params);
-
-            // Close the connection
-            $this->db->closeConnection();
-
-            if (!$result) {
-                error_log("Database insert failed in saveOpportunityToDB");
-            } else {
-                error_log("Opportunity saved successfully with ID: " . $result);
-            }
-
-            return $result;
-        } catch (Exception $e) {
-            error_log("Error saving opportunity: " . $e->getMessage());
-            return false;
+        $opportunity = new Opportunity();
+        if ($opportunity->loadById($opportunityId)) {
+            return $opportunity->delete();
         }
+        return false;
+    }
+
+    /**
+     * Update an opportunity
+     * 
+     * @param Opportunity $opportunity The opportunity object to update
+     * @return bool True if update successful, false otherwise
+     */
+    public function updateOpportunityObject(Opportunity $opportunity): bool {
+        return $opportunity->update();
+    }
+
+    /**
+     * Update an opportunity
+     * 
+     * @param array $opportunityData Opportunity data
+     * @return bool True if update successful, false otherwise
+     */
+    public function updateOpportunity(array $opportunityData): bool {
+        $opportunity = new Opportunity();
+        if ($opportunity->loadById($opportunityData['opportunity_id'])) {
+            // Update properties
+            $opportunity->setTitle($opportunityData['title']);
+            $opportunity->setDescription($opportunityData['description']);
+            $opportunity->setLocation($opportunityData['location']);
+            $opportunity->setStartDate(new \DateTime($opportunityData['start_date']));
+            $opportunity->setEndDate(new \DateTime($opportunityData['end_date']));
+            $opportunity->setCategory($opportunityData['category']);
+            $opportunity->setRequirements($opportunityData['requirements']);
+            $opportunity->setOpportunityPhoto($opportunityData['opportunity_photo']);
+            $opportunity->setStatus($opportunityData['status']);
+            $opportunity->setMaxVolunteers($opportunityData['max_volunteers']);
+            
+            return $opportunity->update();
+        }
+        return false;
+    }
+
+    /**
+     * Get all opportunities
+     * 
+     * @param array $filters Optional filters for the opportunities
+     * @return array Array of opportunities
+     */
+    public function getAllOpportunities(array $filters = []): array {
+        return Opportunity::getAll($filters);
+    }
+    
+    /**
+     * Get basic active opportunities (without filters)
+     * 
+     * @return array Array of active opportunities
+     */
+    public function getBasicActiveOpportunities(): array {
+        return Opportunity::getActive([]);
+    }
+    
+    /**
+     * Get opportunities by location
+     * 
+     * @param string $location Location
+     * @return array Array of opportunities in the location
+     */
+    public function getOpportunitiesByLocation(string $location): array {
+        $filters = ['location' => $location];
+        return Opportunity::getAll($filters);
     }
 }
-?>
-
 
