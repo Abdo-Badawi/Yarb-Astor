@@ -6,18 +6,13 @@ if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     exit;
 }
 
-// Include your validation and controller classes
 include_once '../Controllers/Validation.php';
 include_once '../Controllers/OpportunityController.php';
-include_once '../Models/Opportunity.php';
-use Models\Opportunity;
 Validation::session();
 
-// Initialize variables
 $errMsg = null;
 $successMsg = null;
 
-// Check if there are success or error messages in the session (from a redirect)
 if (isset($_SESSION['opportunity_success'])) {
     $successMsg = $_SESSION['opportunity_success'];
     unset($_SESSION['opportunity_success']); // Clear the message after displaying
@@ -75,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'start_date' => $_POST['start_date'] ?? null,
         'end_date' => $_POST['end_date'] ?? null,
         'category' => $_POST['category'] ?? null,
-        'requirements' => $_POST['requirements'] ?? null,    
+        'requirements' => $_POST['requirements'] ?? null,
+        'image_path' => $imagePath
     ];
 
     // Validate form data
@@ -86,35 +82,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     } else {
         try {
-            // Create a new Opportunity object
-            $startDate = new DateTime($fields['start_date']);
-            $endDate = new DateTime($fields['end_date']);
-            
-            // Dynamically set hostId from the session
+            // Get host ID from session
             $hostId = $_SESSION['userID'] ?? null;
             if (!$hostId) {
                 $_SESSION['opportunity_error'] = "You must be logged in to create an opportunity.";
                 header("Location: create-opportunity.php");
                 exit();
             }
-
-            $opportunity = new Opportunity(
-                $fields['title'], 
-                $fields['description'], 
-                $fields['location'],
-                $startDate, 
-                $endDate, 
-                $fields['category'], 
-                $imagePath, 
-                $fields['requirements']
-            );
             
-            // Set hostId dynamically from the session
-            $opportunity->setHostId($hostId);
-
-            // Save opportunity to DB using OpportunityController
+            // Add host ID to fields
+            $fields['host_id'] = $hostId;
+            
+            // Use the controller to create the opportunity
             $controller = new OpportunityController();
-            if ($controller->saveOpportunityToDB($opportunity)) {
+            if ($controller->createOpportunity($fields)) {
                 // Success - redirect to prevent form resubmission
                 $_SESSION['opportunity_success'] = "Opportunity created successfully.";
                 header("Location: opportunity-success.php");
@@ -306,5 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
+
 
 

@@ -2,32 +2,54 @@
 include_once "../Models/Database.php";
 
 class Opportunity {
-    private int $id;                          // Primary Key (BIGINT AUTO_INCREMENT)
-    private ?string $opportunityPhoto;       // Path or URL to photo
-    private string $title;
-    private string $description;
-    private string $location;
-    private \DateTime $startDate;            // Corresponds to DATE
-    private \DateTime $endDate;
-    private string $category;                // ENUM('teaching', 'farming', 'cooking', 'childcare')
-    private string $hostId;                  // VARCHAR(255) referencing users(user_id)
-    private string $status;                  // ENUM('open', 'closed', 'cancelled')
-    private \DateTime $createdAt;            // TIMESTAMP
-    private string $requirements;            // TEXT (could be JSON or comma-separated)
+    private int $id = 0;                          // Primary Key (BIGINT AUTO_INCREMENT)
+    private ?string $opportunityPhoto = null;     // Path or URL to photo
+    private string $title = '';
+    private string $description = '';
+    private string $location = '';
+    private ?\DateTime $startDate = null;         // Corresponds to DATE
+    private ?\DateTime $endDate = null;
+    private string $category = '';                // ENUM('teaching', 'farming', 'cooking', 'childcare')
+    private string $hostId = '';                  // VARCHAR(255) referencing users(user_id)
+    private string $status = 'open';              // ENUM('open', 'closed', 'cancelled')
+    private ?\DateTime $createdAt = null;         // TIMESTAMP
+    private string $requirements = '';            // TEXT (could be JSON or comma-separated)
     private $db;
 
-    // public function __construct(string $title, string $description, string $location, \DateTime $startDate, \DateTime $endDate, string $category, ?string $opportunityPhoto = null, string $requirements = '') {
-    //     $this->title = $title;
-    //     $this->description = $description;
-    //     $this->location = $location;
-    //     $this->startDate = $startDate;
-    //     $this->endDate = $endDate;
-    //     $this->category = $category;
-    //     $this->hostId = $_SESSION['userID'] ?? 'null';  // Dynamically set hostId from session
-    //     $this->status = "open";
-    //     $this->opportunityPhoto = $opportunityPhoto;
-    //     $this->requirements = $requirements;
-    // }
+    public function _construct() {
+        $this->db = new Database();
+        $this->createdAt = new \DateTime();
+    }
+
+    public function initWithData(array $data): Opportunity {
+        if (isset($data['title'])) $this->title = $data['title'];
+        if (isset($data['description'])) $this->description = $data['description'];
+        if (isset($data['location'])) $this->location = $data['location'];
+        
+        if (isset($data['start_date'])) {
+            if ($data['start_date'] instanceof \DateTime) {
+                $this->startDate = $data['start_date'];
+            } else {
+                $this->startDate = new \DateTime($data['start_date']);
+            }
+        }
+        
+        if (isset($data['end_date'])) {
+            if ($data['end_date'] instanceof \DateTime) {
+                $this->endDate = $data['end_date'];
+            } else {
+                $this->endDate = new \DateTime($data['end_date']);
+            }
+        }
+        
+        if (isset($data['category'])) $this->category = $data['category'];
+        if (isset($data['opportunity_photo'])) $this->opportunityPhoto = $data['opportunity_photo'];
+        if (isset($data['requirements'])) $this->requirements = $data['requirements'];
+        if (isset($data['host_id'])) $this->hostId = $data['host_id'];
+        if (isset($data['status'])) $this->status = $data['status'];
+        
+        return $this;
+    }
 
     // Getters and Setters
 
@@ -439,6 +461,69 @@ class Opportunity {
             return $result;
         } catch (Exception $e) {
             error_log("Error saving opportunity: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Create a new opportunity in the database
+     * 
+     * @param array $data Opportunity data
+     * @return bool True if creation was successful, false otherwise
+     */
+    public function createOpportunity(array $data): bool {
+        try {
+            // Ensure database connection is established
+            $this->db->openConnection();
+
+            // Prepare the SQL statement
+            $sql = "INSERT INTO opportunity (title, description, location, start_date, end_date, category, opportunity_photo, requirements, host_id, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+
+            // Format dates for MySQL if they're not already formatted
+            $startDate = $data['start_date'];
+            if ($startDate instanceof \DateTime) {
+                $startDate = $startDate->format('Y-m-d');
+            }
+            
+            $endDate = $data['end_date'];
+            if ($endDate instanceof \DateTime) {
+                $endDate = $endDate->format('Y-m-d');
+            }
+
+            // Set parameters
+            $params = [
+                $data['title'],
+                $data['description'],
+                $data['location'],
+                $startDate,
+                $endDate,
+                $data['category'],
+                $data['opportunity_photo'],
+                $data['requirements'],
+                $data['host_id'],
+                $data['status']
+            ];
+
+            // Debug information
+            error_log("Creating opportunity with params: " . print_r($params, true));
+
+            // Execute the query
+            $result = $this->db->insert($sql, "ssssssssss", $params);
+
+            // Close the connection
+            $this->db->closeConnection();
+
+            if (!$result) {
+                error_log("Database insert failed in createOpportunity");
+                return false;
+            } else {
+                error_log("Opportunity created successfully with ID: " . $result);
+                return true;
+            }
+        } catch (Exception $e) {
+            error_log("Exception in createOpportunity: " . $e->getMessage());
+            $this->db->closeConnection();
             return false;
         }
     }

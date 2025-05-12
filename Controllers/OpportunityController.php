@@ -44,12 +44,6 @@ class OpportunityController {
         return $result;
     }
 
-    /**
-     * Delete an opportunity
-     * 
-     * @param int $opportunityId The ID of the opportunity to delete
-     * @return bool True if deletion was successful, false otherwise
-     */
     public function deleteOpportunity(int $opportunityId): bool {
         $opportunity = new Opportunity();
         
@@ -75,20 +69,59 @@ class OpportunityController {
         return $opportunity->deleteOpportunity($opportunityId);
     }
     
-    /**
-     * Get applications for a specific opportunity
-     * 
-     * @param int $opportunityId The ID of the opportunity
-     * @return array|null Array of applications or null if none found
-     */
     public function getApplicationsByOpportunityId(int $opportunityId): ?array {
         $opportunity = new Opportunity();
         return $opportunity->getApplicationsByOpportunityId($opportunityId);
     }
+
+    /**
+     * Create a new opportunity
+     * 
+     * @param array $data Opportunity data
+     * @return bool True if creation was successful, false otherwise
+     */
+    public function createOpportunity(array $data): bool {
+        try {
+            // Create a new Opportunity model
+            $opportunityModel = new Opportunity();
+            
+            // Prepare opportunity data
+            $opportunityData = [
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'location' => $data['location'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+                'category' => $data['category'],
+                'opportunity_photo' => $data['image_path'],
+                'requirements' => $data['requirements'],
+                'host_id' => $data['host_id'],
+                'status' => 'open'
+            ];
+            
+            // Save to database using the model's method
+            return $opportunityModel->createOpportunity($opportunityData);
+        } catch (Exception $e) {
+            error_log("Error creating opportunity: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Save opportunity to database
+     * 
+     * @param Opportunity $opportunity The opportunity object
+     * @return bool True if save was successful, false otherwise
+     */
+    public function saveOpportunityToDB($opportunity): bool {
+        try {
+            $model = new Opportunity();
+            return $model->saveOpportunityToDB($opportunity);
+        } catch (Exception $e) {
+            error_log("Error saving opportunity: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>
-
-
-
-
 

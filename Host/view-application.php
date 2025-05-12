@@ -29,7 +29,7 @@ $applicationController = new ApplicationController();
 $messageController = new MessageController();
 
 // Get application details
-$application = $applicationController->getApplicationByID($applicationId);
+$application = $applicationController->getAppByID($applicationId);
 
 // Check if application exists and belongs to the host
 if (!$application || $application['host_id'] != $hostID) {
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'accept') {
-        $applicationController->updateApplicationStatus($applicationId, 'accepted');
+        $applicationController->updateAppStat($applicationId, 'accepted');
         
         // Send notification message to traveler
         $messageData = [
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $_SESSION['success_message'] = "Application has been accepted successfully.";
     } elseif ($action === 'reject') {
-        $applicationController->updateApplicationStatus($applicationId, 'rejected');
+        $applicationController->updateAppStat($applicationId, 'rejected');
         
         // Send notification message to traveler
         $messageData = [

@@ -46,12 +46,23 @@ class Application {
         $result = $this->db->selectPrepared($sql, "i", $params);
         $this->db->closeConnection();
         
-        return $result[0] ?? null;
+        return $result ? $result[0] : null;
     }
 
+    /**
+     * Update application status
+     * 
+     * @param int $applicationID The application ID
+     * @param string $status The new status ('pending', 'accepted', 'rejected')
+     * @return bool True if update was successful, false otherwise
+     */
     public function updateApplicationStatus(int $applicationID, string $status): bool {
-        $sql = "UPDATE applications SET status = ? WHERE application_id = ?";
+        // Validate status
+        if (!in_array($status, ['pending', 'accepted', 'rejected'])) {
+            return false;
+        }
         
+        $sql = "UPDATE applications SET status = ? WHERE application_id = ?";
         $params = [$status, $applicationID];
         
         $this->db->openConnection();
@@ -62,4 +73,6 @@ class Application {
     }
 }
 ?>
+
+
 
