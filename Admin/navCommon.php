@@ -1,7 +1,7 @@
 <?php
-// Include the DBController if not already included
-if (!class_exists('DBController')) {
-    include_once '../Controllers/DBController.php';
+// Include necessary files
+if (!class_exists('Admin')) {
+    require_once '../Models/Admin.php';
 }
 
 // Default values
@@ -12,17 +12,12 @@ $navAdminName = "Admin"; // Default name
 if (isset($_SESSION['userID'])) {
     $navUserId = $_SESSION['userID'];
 
-    $navDb = new DBController();
-    if ($navDb->openConnection()) {
-        $navQuery = "SELECT first_name, last_name FROM users WHERE user_id = ? AND user_type = 'admin'";
-        $navParams = [$navUserId];
-        $navResult = $navDb->selectPrepared($navQuery, "i", $navParams);
+    // Use Admin class to get user data
+    $navAdmin = new Admin();
+    $adminData = $navAdmin->getUserData($navUserId);
 
-        if ($navResult && count($navResult) > 0) {
-            $navAdminName = $navResult[0]['first_name'] . ' ' . $navResult[0]['last_name'];
-        }
-
-        $navDb->closeConnection();
+    if ($adminData) {
+        $navAdminName = $adminData['first_name'] . ' ' . $adminData['last_name'];
     }
 }
 ?>

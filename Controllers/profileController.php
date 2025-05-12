@@ -1,7 +1,7 @@
 <?php
     include_once '../Models/Traveler.php';
-    // include_once '../Models/Host.php';
-    // include_once '../Models/Admin.php';
+    include_once '../Models/Host.php';
+    include_once '../Models/Admin.php';
 
     function viewHostProfile(){
 
@@ -22,7 +22,19 @@
     }
 
     function viewAdminProfile(){
+        $admin = new Admin();
+        $adminId = $_SESSION['userID'];
+        $adminProfile = $admin->getUserData($adminId);
+        return $adminProfile;
+    }
 
+    function updateAdminProfile($userData) {
+        $admin = new Admin();
+        $adminId = $_SESSION['userID'];
+        $result = $admin->updateUserProfile($adminId, $userData);
+        return $result;
     }
 
 ?>
+
+

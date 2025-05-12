@@ -1,8 +1,8 @@
 <?php
 require_once '../Models/Database.php';
 require_once '../Models/User.php';
-use Models\User;
-class Host extends User{
+
+class Host extends User {
     
     private string $hostID;
     private string $propertyType;          // Enum type
@@ -14,10 +14,10 @@ class Host extends User{
     private string $location;
     private \DateTime $createdAt;            // TIMESTAMP
     private string $status;  
-    private $db;
+    protected $db;
 
     public function __construct() {
-        $this->db = new Database();
+        parent::__construct();
     }
 
     public function getHostDashboardData(int $hostID): array {

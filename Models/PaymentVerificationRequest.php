@@ -15,53 +15,40 @@ class PaymentVerificationRequest {
      * @return array Array of payment verification requests
      */
     public function getAllRequests($filters = []) {
-        $sql = "SELECT pvr.*, u.name as traveler_name
+        $sql = "SELECT pvr.*, u.first_name, u.last_name
                 FROM payment_verification_requests pvr
                 LEFT JOIN users u ON pvr.traveler_id = u.user_id";
 
         $whereConditions = [];
         $params = [];
+        $types = "";
 
         // Apply filters if provided
-        if (!empty($filters)) {
-            if (isset($filters['status']) && $filters['status']) {
-                $whereConditions[] = "pvr.status = ?";
-                $params[] = $filters['status'];
-            }
-
-            if (isset($filters['priority']) && $filters['priority']) {
-                $whereConditions[] = "pvr.priority = ?";
-                $params[] = $filters['priority'];
-            }
-
-            if (isset($filters['issue_type']) && $filters['issue_type']) {
-                $whereConditions[] = "pvr.issue_type = ?";
-                $params[] = $filters['issue_type'];
-            }
-
-            if (isset($filters['traveler_id']) && $filters['traveler_id']) {
-                $whereConditions[] = "pvr.traveler_id = ?";
-                $params[] = $filters['traveler_id'];
-            }
-
-            if (isset($filters['booking_id']) && $filters['booking_id']) {
-                $whereConditions[] = "pvr.booking_id LIKE ?";
-                $params[] = '%' . $filters['booking_id'] . '%';
-            }
-
-            if (isset($filters['transaction_id']) && $filters['transaction_id']) {
-                $whereConditions[] = "pvr.transaction_id LIKE ?";
-                $params[] = '%' . $filters['transaction_id'] . '%';
-            }
+        if (!empty($filters['status'])) {
+            $whereConditions[] = "pvr.status = ?";
+            $params[] = $filters['status'];
+            $types .= "s";
         }
 
-        // Add WHERE clause if there are conditions
+        if (!empty($filters['priority'])) {
+            $whereConditions[] = "pvr.priority = ?";
+            $params[] = $filters['priority'];
+            $types .= "s";
+        }
+
+        if (!empty($filters['traveler_id'])) {
+            $whereConditions[] = "pvr.traveler_id = ?";
+            $params[] = $filters['traveler_id'];
+            $types .= "i";
+        }
+
+        // Add WHERE clause if filters were applied
         if (!empty($whereConditions)) {
             $sql .= " WHERE " . implode(" AND ", $whereConditions);
         }
 
-        // Add order by
-        $sql .= " ORDER BY
+        // Add ordering
+        $sql .= " ORDER BY 
                   CASE pvr.priority
                     WHEN 'urgent' THEN 1
                     WHEN 'high' THEN 2
@@ -72,12 +59,15 @@ class PaymentVerificationRequest {
                     WHEN 'new' THEN 1
                     WHEN 'pending' THEN 2
                     WHEN 'in_progress' THEN 3
-                    WHEN 'resolved' THEN 4
-                    WHEN 'closed' THEN 5
+                    WHEN 'closed' THEN 4
                   END,
                   pvr.created_at DESC";
 
-        return $this->db->select($sql, $params);
+        if (empty($params)) {
+            return $this->db->select($sql);
+        } else {
+            return $this->db->selectPrepared($sql, $types, $params);
+        }
     }
 
     /**
@@ -87,13 +77,13 @@ class PaymentVerificationRequest {
      * @return array|false The request data or false if not found
      */
     public function getRequestById($requestId) {
-        $sql = "SELECT pvr.*, u.name as traveler_name
+        $sql = "SELECT pvr.*, u.first_name, u.last_name
                 FROM payment_verification_requests pvr
                 LEFT JOIN users u ON pvr.traveler_id = u.user_id
                 WHERE pvr.request_id = ?";
 
-        $result = $this->db->select($sql, [$requestId]);
-
+        $result = $this->db->selectPrepared($sql, "i", [$requestId]);
+        
         return !empty($result) ? $result[0] : false;
     }
 
@@ -163,3 +153,4 @@ class PaymentVerificationRequest {
         return $this->db->delete($sql, [$requestId]);
     }
 }
+

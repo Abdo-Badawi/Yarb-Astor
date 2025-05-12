@@ -1,7 +1,7 @@
 <?php
 require_once '../Models/PaymentVerificationRequest.php';
 
-class PaymentVerificationRequest{
+class PaymentVerificationRequestController {
     private $model;
     
     public function __construct() {
@@ -140,3 +140,4 @@ class PaymentVerificationRequest{
         }
     }
 }
+

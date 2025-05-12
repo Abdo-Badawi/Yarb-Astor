@@ -3,6 +3,7 @@ namespace Models;
 
 require_once 'User.php';
 
+
 class Admin implements User {
     public string $AdminID;
     public string $Username;

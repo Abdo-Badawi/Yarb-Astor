@@ -9,43 +9,20 @@ if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
 }
 
 // Load required controllers
+require_once '../Controllers/PaymentVerificationRequestController.php';
 require_once '../Controllers/FeeTransactionController.php';
 require_once '../Controllers/CardController.php';
-require_once '../Controllers/DBController.php';
 
 // Instantiate the controllers
+$verificationController = new PaymentVerificationRequestController();
 $feeController = new FeeTransactionController();
 $cardController = new CardController();
-$db = new DBController();
 
 // Get all transactions
 $transactions = $feeController->getAllTransactions();
 
-// Get all verification requests directly from the database
-$verificationRequests = [];
-if ($db->openConnection()) {
-    $query = "SELECT pvr.*, u.first_name, u.last_name
-              FROM payment_verification_requests pvr
-              LEFT JOIN users u ON pvr.traveler_id = u.user_id
-              WHERE pvr.status != 'resolved' -- Exclude resolved requests
-              ORDER BY
-              CASE pvr.priority
-                WHEN 'urgent' THEN 1
-                WHEN 'high' THEN 2
-                WHEN 'normal' THEN 3
-                WHEN 'low' THEN 4
-              END,
-              CASE pvr.status
-                WHEN 'new' THEN 1
-                WHEN 'pending' THEN 2
-                WHEN 'in_progress' THEN 3
-                WHEN 'closed' THEN 4
-              END,
-              pvr.created_at DESC";
-
-    $verificationRequests = $db->select($query);
-    $db->closeConnection();
-}
+// Get all verification requests using the controller
+$verificationRequests = $verificationController->getAllRequests(['status' => ['new', 'pending', 'in_progress']]);
 
 // Helper functions for status and priority badges
 function getStatusBadgeClass($status) {

@@ -12,7 +12,7 @@ if (!isset($_SESSION['auth_token'])) {
 }
 
 // Load the AdminDashboardController
-require_once '../Controllers/AdminDashboardController.php';
+include '../Controllers/AdminDashboardController.php';
 
 // Initialize the controller and get dashboard data
 $dashboardController = new AdminDashboardController();

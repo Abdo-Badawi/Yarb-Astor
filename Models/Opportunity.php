@@ -1,4 +1,5 @@
 <?php
+namespace Models;
 include_once "../Models/Database.php";
 
 class Opportunity {
@@ -16,18 +17,19 @@ class Opportunity {
     private string $requirements;            // TEXT (could be JSON or comma-separated)
     private $db;
 
-    // public function __construct(string $title, string $description, string $location, \DateTime $startDate, \DateTime $endDate, string $category, ?string $opportunityPhoto = null, string $requirements = '') {
-    //     $this->title = $title;
-    //     $this->description = $description;
-    //     $this->location = $location;
-    //     $this->startDate = $startDate;
-    //     $this->endDate = $endDate;
-    //     $this->category = $category;
-    //     $this->hostId = $_SESSION['userID'] ?? 'null';  // Dynamically set hostId from session
-    //     $this->status = "open";
-    //     $this->opportunityPhoto = $opportunityPhoto;
-    //     $this->requirements = $requirements;
-    // }
+    public function __construct(string $title, string $description, string $location, \DateTime $startDate, \DateTime $endDate, string $category, ?string $opportunityPhoto = null, string $requirements = '') {
+        $this->title = $title;
+        $this->description = $description;
+        $this->location = $location;
+        $this->startDate = $startDate;
+        $this->endDate = $endDate;
+        $this->category = $category;
+        $this->hostId = $_SESSION['userID'] ?? 'null';  // Dynamically set hostId from session
+        $this->status = "open";
+        $this->opportunityPhoto = $opportunityPhoto;
+        $this->requirements = $requirements;
+        $this->db = new \Database(); // Use the global namespace
+    }
 
     // Getters and Setters
 
@@ -177,9 +179,7 @@ class Opportunity {
     }
 
 
-    public function __construct() {
-        $this->db = new Database();
-    }
+   
 
     // Function to check if a traveler has already applied for an opportunity
     public function checkIfTravelerApplied(int $travelerId, int $opportunityId): bool {
@@ -374,16 +374,20 @@ class Opportunity {
     }
 
     // Function to get all opportunities
-    public function getAllOpportunities(): array {
-        $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture
-                FROM opportunity o
-                JOIN users u ON o.host_id = u.user_id
-                ORDER BY o.created_at DESC";
-
+    public function getAllOpportunities() {
         $this->db->openConnection();
-        $result = $this->db->select($sql);
+        
+        $query = "SELECT o.*, u.first_name, u.last_name, u.profile_picture 
+                 FROM opportunity o 
+                 JOIN users u ON o.host_id = u.user_id 
+                 WHERE o.status = 'open'
+                 ORDER BY o.created_at DESC";
+        
+        // Use select instead of selectPrepared since there are no parameters
+        $result = $this->db->select($query);
+        
         $this->db->closeConnection();
-
+        
         return $result ?: [];
     }
 
@@ -435,7 +439,7 @@ class Opportunity {
             }
 
             return $result;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error saving opportunity: " . $e->getMessage());
             return false;
         }
@@ -511,3 +515,7 @@ class Opportunity {
         echo "</div>";
     }
 }
+
+
+
+

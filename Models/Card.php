@@ -1,45 +1,40 @@
 <?php
+namespace Models;
 require_once '../Models/Database.php';
 
 class Card {
-    public string $CardNumber;
-    public string $ExpiryDate;
-    public string $CVV;
-    public string $CardHolderName;
-    public string $BillingAddress;
-    public int $TravelerID;
+    public int $cardId;
+    public string $cardNumber;
+    public string $expiryDate;
+    public string $cvv;
+    public string $cardHolderName;
+    public string $billingAddress;
+    public int $travelerId;
     private $db;
-    
-    public function __construct() {
-        $this->db = new Database();
+
+    public function __construct($data = null) {
+        $this->db = new \Database();
+        
+        if ($data) {
+            $this->cardId = $data['card_id'] ?? 0;
+            $this->cardNumber = $data['card_number'] ?? '';
+            $this->expiryDate = $data['expiry_date'] ?? '';
+            $this->cvv = $data['cvv'] ?? '';
+            $this->cardHolderName = $data['card_holder_name'] ?? '';
+            $this->billingAddress = $data['billing_address'] ?? '';
+            $this->travelerId = $data['traveler_id'] ?? 0;
+        }
     }
-    
-    // Get all cards for a traveler
-    public function getCardsByTravelerId(int $travelerId): array {
-        $sql = "SELECT * FROM card WHERE traveler_id = ? ORDER BY card_id DESC";
+
+    // Get all cards
+    public function getAllCards(): array {
+        $sql = "SELECT * FROM card ORDER BY card_id DESC";
         
         $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "i", [$travelerId]);
+        $result = $this->db->select($sql);
         $this->db->closeConnection();
         
-        // Process the results
-        if ($result) {
-            foreach ($result as &$row) {
-                // Mask the card number for security
-                $row['masked_card_number'] = $this->maskCardNumber($row['card_number']);
-                
-                // Format expiry date
-                if (isset($row['expiry_date'])) {
-                    $expiryDate = new \DateTime($row['expiry_date']);
-                    $row['formatted_expiry_date'] = $expiryDate->format('m/Y');
-                }
-                
-                // Determine card type
-                $row['card_type'] = $this->getCardType($row['card_number']);
-            }
-        }
-        
-        return $result ?: [];
+        return $this->formatCardResults($result);
     }
     
     // Get card by ID
@@ -51,28 +46,26 @@ class Card {
         $this->db->closeConnection();
         
         if (is_array($result) && !empty($result)) {
-            $card = $result[0];
-            
-            // Mask the card number for security
-            $card['masked_card_number'] = $this->maskCardNumber($card['card_number']);
-            
-            // Format expiry date
-            if (isset($card['expiry_date'])) {
-                $expiryDate = new \DateTime($card['expiry_date']);
-                $card['formatted_expiry_date'] = $expiryDate->format('m/Y');
-            }
-            
-            // Determine card type
-            $card['card_type'] = $this->getCardType($card['card_number']);
-            
-            return $card;
+            $cards = $this->formatCardResults($result);
+            return $cards[0];
         }
         
         return null;
     }
     
+    // Get cards by traveler ID
+    public function getCardsByTravelerId(int $travelerId): array {
+        $sql = "SELECT * FROM card WHERE traveler_id = ? ORDER BY card_id DESC";
+        
+        $this->db->openConnection();
+        $result = $this->db->selectPrepared($sql, "i", [$travelerId]);
+        $this->db->closeConnection();
+        
+        return $this->formatCardResults($result);
+    }
+    
     // Create a new card
-    public function createCard(array $cardData): bool {
+    public function createCard(array $cardData): int {
         // Prepare data for insertion
         $dbData = [
             'card_number' => $cardData['card_number'] ?? '',
@@ -102,9 +95,10 @@ class Card {
         
         $this->db->openConnection();
         $result = $this->db->insert($sql, $types, array_values($dbData));
+        $insertId = $result ? $this->db->getInsertId() : 0;
         $this->db->closeConnection();
         
-        return $result;
+        return $insertId;
     }
     
     // Update an existing card
@@ -174,14 +168,14 @@ class Card {
         $sql = "DELETE FROM card WHERE card_id = ?";
         
         $this->db->openConnection();
-        $result = $this->db->insert($sql, "i", [$cardId]); // Using insert method for DELETE query
+        $result = $this->db->delete($sql, "i", [$cardId]);
         $this->db->closeConnection();
         
         return $result;
     }
     
     // Helper method to mask card number
-    private function maskCardNumber(string $cardNumber): string {
+    public function maskCardNumber(string $cardNumber): string {
         // Show only the last 4 digits of the card number
         $length = strlen($cardNumber);
         if ($length <= 4) {
@@ -194,31 +188,44 @@ class Card {
         return $maskedPart . $lastFourDigits;
     }
     
-    // Helper method to determine card type
-    private function getCardType(string $cardNumber): string {
-        // Determine card type based on the first digit
-        if (empty($cardNumber)) {
-            return 'Unknown';
+    // Helper method to format card results
+    private function formatCardResults($result): array {
+        if (!$result) {
+            return [];
         }
         
-        $firstDigit = substr($cardNumber, 0, 1);
-        
-        switch ($firstDigit) {
-            case '4':
-                return 'Visa';
-            case '5':
-                return 'MasterCard';
-            case '3':
-                // Check for American Express (starts with 34 or 37)
-                $firstTwoDigits = substr($cardNumber, 0, 2);
-                if ($firstTwoDigits == '34' || $firstTwoDigits == '37') {
-                    return 'American Express';
-                }
-                return 'Unknown';
-            case '6':
-                return 'Discover';
-            default:
-                return 'Unknown';
+        $formattedResults = [];
+        foreach ($result as $row) {
+            // Mask sensitive data for security
+            $row['masked_card_number'] = $this->maskCardNumber($row['card_number']);
+            
+            // Format expiry date for display (MM/YY)
+            if (isset($row['expiry_date']) && !empty($row['expiry_date'])) {
+                $expiryDate = new \DateTime($row['expiry_date']);
+                $row['formatted_expiry'] = $expiryDate->format('m/y');
+            } else {
+                $row['formatted_expiry'] = 'N/A';
+            }
+            
+            $formattedResults[] = $row;
         }
+        
+        return $formattedResults;
+    }
+    
+    // Convert object to array
+    public function toArray(): array {
+        return [
+            'card_id' => $this->cardId,
+            'card_number' => $this->cardNumber,
+            'masked_card_number' => $this->maskCardNumber($this->cardNumber),
+            'expiry_date' => $this->expiryDate,
+            'formatted_expiry' => (new \DateTime($this->expiryDate))->format('m/y'),
+            'cvv' => $this->cvv,
+            'card_holder_name' => $this->cardHolderName,
+            'billing_address' => $this->billingAddress,
+            'traveler_id' => $this->travelerId
+        ];
     }
 }
+

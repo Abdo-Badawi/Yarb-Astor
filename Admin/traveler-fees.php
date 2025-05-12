@@ -490,7 +490,7 @@ $fees = $feeController->getAllFees();
                         <span class="d-block m-t-5">Create and publish fees for travelers</span>
                     </div>
                     <div class="card-body">
-                        <form id="feeForm">
+                        <form id="feeForm" action="traveler-fees.php" method="post">
                             <input type="hidden" id="feeId">
                             <div class="row">
                                 <div class="col-md-6">
@@ -720,15 +720,37 @@ $fees = $feeController->getAllFees();
     <script>
         // Fee Management Functions
         function createFee() {
-            // Get form values
-            const feeId = document.getElementById('feeId').value;
-            const feeName = document.getElementById('feeName').value;
-            const feeAmount = document.getElementById('feeAmount').value;
-            const feeCurrency = document.getElementById('feeCurrency').value;
-            const feeStatus = document.getElementById('feeStatus').value;
-            const feeApplicability = document.getElementById('feeApplicability').value;
-            const feeDescription = document.getElementById('feeDescription').value;
-            const feeMandatory = document.getElementById('feeMandatory').checked;
+            // Check if form elements exist
+            const feeIdElement = document.getElementById('feeId');
+            const feeNameElement = document.getElementById('feeName');
+            const feeAmountElement = document.getElementById('feeAmount');
+            const feeCurrencyElement = document.getElementById('feeCurrency');
+            const feeStatusElement = document.getElementById('feeStatus');
+            const feeApplicabilityElement = document.getElementById('feeApplicability');
+            const feeDescriptionElement = document.getElementById('feeDescription');
+            const feeMandatoryElement = document.getElementById('feeMandatory');
+            
+            // Log which elements are missing
+            if (!feeIdElement) console.error('Element with ID "feeId" not found');
+            if (!feeNameElement) console.error('Element with ID "feeName" not found');
+            if (!feeAmountElement) console.error('Element with ID "feeAmount" not found');
+            if (!feeCurrencyElement) console.error('Element with ID "feeCurrency" not found');
+            if (!feeStatusElement) console.error('Element with ID "feeStatus" not found');
+            if (!feeApplicabilityElement) console.error('Element with ID "feeApplicability" not found');
+            if (!feeDescriptionElement) console.error('Element with ID "feeDescription" not found');
+            if (!feeMandatoryElement) console.error('Element with ID "feeMandatory" not found');
+            
+            // Get form values safely
+            const feeId = feeIdElement ? feeIdElement.value : '';
+            const feeName = feeNameElement ? feeNameElement.value : '';
+            const feeAmount = feeAmountElement ? feeAmountElement.value : '';
+            const feeCurrency = feeCurrencyElement ? feeCurrencyElement.value : 'USD';
+            const feeStatus = feeStatusElement ? feeStatusElement.value : 'active';
+            const feeApplicability = feeApplicabilityElement ? feeApplicabilityElement.value : 'all';
+            const feeDescription = feeDescriptionElement ? feeDescriptionElement.value : '';
+            const feeMandatory = feeMandatoryElement ? feeMandatoryElement.checked : false;
+
+            console.log('Form data:', { feeName, feeAmount, feeCurrency, feeStatus, feeApplicability, feeMandatory });
 
             // Validate form
             if (!feeName || !feeAmount) {
@@ -748,6 +770,8 @@ $fees = $feeController->getAllFees();
                 is_mandatory: feeMandatory
             };
 
+            console.log('Sending fee data:', feeData);
+
             // If editing an existing fee, update it
             if (feeId) {
                 updateFee(feeId, feeData);
@@ -762,19 +786,35 @@ $fees = $feeController->getAllFees();
                 },
                 body: JSON.stringify(feeData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.text().then(text => {
+                    try {
+                        // Try to parse as JSON
+                        console.log('Raw response:', text);
+                        return JSON.parse(text);
+                    } catch (e) {
+                        // If not valid JSON, log the raw response and throw error
+                        console.error('Invalid JSON response:', text);
+                        throw new Error('Server returned invalid JSON: ' + text);
+                    }
+                });
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     showNotification('success', 'Fee created successfully!');
                     resetFeeForm();
                     window.location.reload();
                 } else {
+                    console.error('Error from server:', data.message);
                     showNotification('error', 'Error: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                showNotification('error', 'An error occurred while creating the fee.');
+                console.error('Error details:', error);
+                showNotification('error', 'An error occurred while creating the fee: ' + error.message);
             });
         }
 
@@ -1736,3 +1776,6 @@ $fees = $feeController->getAllFees();
     </script>
 </body>
 </html>
+
+
+

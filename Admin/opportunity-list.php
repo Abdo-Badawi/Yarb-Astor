@@ -1,12 +1,17 @@
 <?php
-    include_once '../Controllers/OpportunityController.php';
-
-    // Instantiate the controller
+    session_start();
+    
+    // Check if user is logged in and is an admin
+    if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+        header("Location: ../Common/login.php");
+        exit;
+    }
+    
+    require_once '../Controllers/OpportunityController.php';
     $controller = new OpportunityController();
 
     // Call the function to get all opportunities
     $opportunities = $controller->getAllOpportunities();  // This should return an array of opportunities
-
 ?>
 
 <!DOCTYPE html>
@@ -152,7 +157,7 @@
                                 <h5 class="m-b-10">Homestay Opportunities</h5>
                             </div>
                             <ul class="breadcrumb">
-                                <li class="breadcrumb-item"><a href="index.html"><i class="feather icon-home"></i></a></li>
+                                <li class="breadcrumb-item"><a href="index.php"><i class="feather icon-home"></i></a></li>
                                 <li class="breadcrumb-item"><a href="#!">Homestay Opportunities</a></li>
                             </ul>
                         </div>
@@ -166,6 +171,8 @@
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="feather icon-list mr-2"></i>Opportunity List</h5>
+                            <!-- Success/Error Messages -->
+                            <div id="messageContainer"></div>
                         </div>
                         <div class="card-body">
                             <!-- Search and Filters -->
@@ -183,12 +190,12 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="filterWorkType">Filter by Work Type</label>
-                                        <select class="form-control" id="filterWorkType">
+                                        <select class="form-control" id="filterWorkType" onchange="searchOpportunities()">
                                             <option value="">All Work Types</option>
                                             <option value="farming">Farming</option>
                                             <option value="teaching">Teaching</option>
                                             <option value="childcare">Childcare</option>
-                                            <option value="elderly">Elderly Care</option>
+                                            <option value="cooking">Cooking</option>
                                             <option value="housekeeping">Housekeeping</option>
                                             <option value="construction">Construction</option>
                                         </select>
@@ -197,11 +204,12 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="filterStatus">Filter by Status</label>
-                                        <select class="form-control" id="filterStatus">
+                                        <select class="form-control" id="filterStatus" onchange="searchOpportunities()">
                                             <option value="">All Status</option>
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                            <option value="filled">Filled</option>
+                                            <option value="open">Open</option>
+                                            <option value="closed">Closed</option>
+                                            <option value="cancelled">Cancelled</option>
+                                            <option value="reported">Reported</option>
                                         </select>
                                     </div>
                                 </div>
@@ -211,52 +219,61 @@
                             <div class="row" id="opportunityList">
                                 <?php foreach ($opportunities as $opportunity): ?>
                                     <div class="col-xl-6 col-md-6">
-                                        <div class="opportunity-card">
+                                        <div class="opportunity-card" data-id="<?= $opportunity['opportunity_id'] ?>">
                                             <div class="opportunity-header">
-                                                <img src="<?= isset($opportunity['opportunity_photo']) ? htmlspecialchars($opportunity['opportunity_photo']) : 'assets/images/default-opportunity.jpg' ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
+                                                <img src="<?= isset($opportunity['opportunity_photo']) ? htmlspecialchars($opportunity['opportunity_photo']) : '../assets/images/default-opportunity.jpg' ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
                                                 <h6 class="opportunity-title"><?= htmlspecialchars($opportunity['title']) ?></h6>
-                                                <span class="badge badge-success"><?= ucfirst(htmlspecialchars($opportunity['status'])) ?></span>
+                                                <?php
+                                                    $statusClass = '';
+                                                    switch(strtolower($opportunity['status'])) {
+                                                        case 'open':
+                                                            $statusClass = 'badge-success';
+                                                            break;
+                                                        case 'closed':
+                                                            $statusClass = 'badge-danger';
+                                                            break;
+                                                        case 'cancelled':
+                                                            $statusClass = 'badge-warning';
+                                                            break;
+                                                        case 'reported':
+                                                            $statusClass = 'badge-secondary';
+                                                            break;
+                                                        default:
+                                                            $statusClass = 'badge-info';
+                                                    }
+                                                ?>
+                                                <span class="badge <?= $statusClass ?>"><?= ucfirst(htmlspecialchars($opportunity['status'])) ?></span>
                                             </div>
                                             <div class="opportunity-location">
                                                 <i class="feather icon-map-pin"></i> <?= htmlspecialchars($opportunity['location']) ?>
                                             </div>
                                             <div class="opportunity-details">
                                                 <div class="detail-item">
-                                                    <span class="detail-label text-primary font-weight-bold">Work Type:</span>
-                                                    <span class="detail-value" style="text-transform: capitalize;"><?= htmlspecialchars($opportunity['category']) ?></span>
+                                                    <div class="detail-label">Work Type:</div>
+                                                    <div class="detail-value"><?= htmlspecialchars($opportunity['category']) ?></div>
                                                 </div>
                                                 <div class="detail-item">
-                                                    <span class="detail-label text-primary font-weight-bold">Created At:</span>
-                                                    <span class="detail-value"><?= isset($opportunity['created_at']) ? (new DateTime($opportunity['created_at']))->format('M d, Y') : 'N/A' ?></span>
+                                                    <div class="detail-label">Host:</div>
+                                                    <div class="detail-value">
+                                                        <?= isset($opportunity['first_name']) ? htmlspecialchars($opportunity['first_name'] . ' ' . $opportunity['last_name']) : 'Unknown Host' ?>
+                                                    </div>
                                                 </div>
                                                 <div class="detail-item">
-                                                    <span class="detail-label text-primary font-weight-bold">Duration:</span>
-                                                    <span class="detail-value">
-                                                        <?php
-                                                        if (isset($opportunity['start_date']) && isset($opportunity['end_date'])) {
-                                                            echo date_diff(new DateTime($opportunity['start_date']), new DateTime($opportunity['end_date']))->format('%a days');
-                                                        } else {
-                                                            echo 'N/A';
-                                                        }
-                                                        ?>
-                                                    </span>
+                                                    <div class="detail-label">Duration:</div>
+                                                    <div class="detail-value">
+                                                        <?= htmlspecialchars($opportunity['start_date']) ?> to <?= htmlspecialchars($opportunity['end_date']) ?>
+                                                    </div>
                                                 </div>
-                                                <div class="detail-item">
-                                                    <span class="detail-label text-primary font-weight-bold">Start Date:</span>
-                                                    <span class="detail-value"><?= isset($opportunity['start_date']) ? (new DateTime($opportunity['start_date']))->format('M d, Y') : 'N/A' ?></span>
-                                                </div>
-                                                <div class="detail-item">
-                                                    <span class="detail-label text-primary font-weight-bold">End Date:</span>
-                                                    <span class="detail-value"><?= isset($opportunity['end_date']) ? (new DateTime($opportunity['end_date']))->format('M d, Y') : 'N/A' ?></span>
-                                                </div>
-                                            </div>
-                                            <div class="opportunity-requirements">
-                                                <strong>Requirements:</strong> <?= isset($opportunity['requirements']) ? htmlspecialchars($opportunity['requirements']) : 'No specific requirements' ?>
                                             </div>
                                             <div class="opportunity-description">
                                                 <strong>Description:</strong> <?= isset($opportunity['description']) ? htmlspecialchars($opportunity['description']) : 'No description available' ?>
                                             </div>
+                                            <div class="opportunity-requirements">
+                                                <strong>Requirements:</strong> <?= isset($opportunity['requirements']) ? htmlspecialchars($opportunity['requirements']) : 'No specific requirements' ?>
+                                            </div>
                                             <div class="opportunity-actions">
+                                                <button class="btn btn-info" onclick="viewOpportunity(<?= $opportunity['opportunity_id'] ?>)">View Details</button>
+                                                <button class="btn btn-warning" onclick="updateStatus(<?= $opportunity['opportunity_id'] ?>)">Update Status</button>
                                                 <button class="btn btn-danger" onclick="deleteOpportunity(<?= $opportunity['opportunity_id'] ?>)">Delete</button>
                                             </div>
                                         </div>
@@ -270,16 +287,68 @@
         </div>
     </div>
 
+    <!-- Status Update Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Update Opportunity Status</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="opportunityId">
+                    <div class="form-group">
+                        <label for="opportunityStatus">Status</label>
+                        <select class="form-control" id="opportunityStatus">
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="reported">Reported</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveStatus()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS -->
     <script src="assets/js/vendor-all.min.js"></script>
     <script src="assets/js/plugins/bootstrap.min.js"></script>
     <script src="assets/js/pcoded.min.js"></script>
-    <script src="assets/js/custom.js"></script>
     <script>
+        // Show notification message
+        function showNotification(type, message) {
+            const messageContainer = document.getElementById('messageContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            
+            messageContainer.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = messageContainer.querySelector('.alert');
+                if (alert) {
+                    $(alert).alert('close');
+                }
+            }, 5000);
+        }
+
         function searchOpportunities() {
             const searchTerm = document.getElementById('searchOpportunity').value.toLowerCase();
-            const workType = document.getElementById('filterWorkType').value;
-            const status = document.getElementById('filterStatus').value;
+            const workType = document.getElementById('filterWorkType').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value.toLowerCase();
             const cards = document.querySelectorAll('.opportunity-card');
 
             cards.forEach(card => {
@@ -306,13 +375,78 @@
             });
         }
 
-        document.getElementById('filterWorkType').addEventListener('change', searchOpportunities);
-        document.getElementById('filterStatus').addEventListener('change', searchOpportunities);
-        document.getElementById('searchOpportunity').addEventListener('keyup', function (event) {
-            if (event.key === 'Enter') {
-                searchOpportunities();
+        function viewOpportunity(opportunityId) {
+            // Redirect to a detailed view page
+            window.location.href = `opportunity-detail.php?id=${opportunityId}`;
+        }
+
+        function updateStatus(opportunityId) {
+            // Set the opportunity ID in the modal
+            document.getElementById('opportunityId').value = opportunityId;
+            
+            // Get the current status from the card
+            const card = document.querySelector(`.opportunity-card[data-id="${opportunityId}"]`);
+            const currentStatus = card.querySelector('.badge').textContent.toLowerCase();
+            
+            // Set the current status in the dropdown
+            document.getElementById('opportunityStatus').value = currentStatus;
+            
+            // Show the modal
+            $('#statusModal').modal('show');
+        }
+
+        function saveStatus() {
+            const opportunityId = document.getElementById('opportunityId').value;
+            const newStatus = document.getElementById('opportunityStatus').value;
+
+            fetch('opportunity-update-status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `id=${opportunityId}&status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('success', 'Opportunity status updated successfully!');
+
+                    // Update the status badge in the card
+                    const card = document.querySelector(`.opportunity-card[data-id="${opportunityId}"]`);
+                    const statusBadge = card.querySelector('.badge');
+                    statusBadge.textContent = ucfirst(newStatus);
+                    statusBadge.className = `badge ${getStatusClass(newStatus)}`;
+                } else {
+                    showNotification('error', 'Error updating opportunity status: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while updating the opportunity status.');
+            });
+
+            // Close the modal
+            $('#statusModal').modal('hide');
+        }
+
+        function getStatusClass(status) {
+            switch(status.toLowerCase()) {
+                case 'open':
+                    return 'badge-success';
+                case 'closed':
+                    return 'badge-danger';
+                case 'cancelled':
+                    return 'badge-warning';
+                case 'reported':
+                    return 'badge-secondary';
+                default:
+                    return 'badge-info';
             }
-        });
+        }
+
+        function ucfirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
 
         function deleteOpportunity(opportunityId) {
             if (confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
@@ -322,20 +456,26 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Opportunity deleted successfully!');
+                        showNotification('success', 'Opportunity deleted successfully!');
+
                         // Remove the card from the DOM
                         const card = document.querySelector(`button[onclick="deleteOpportunity(${opportunityId})"]`).closest('.col-xl-6');
                         card.remove();
                     } else {
-                        alert('Error: ' + data.message);
+                        showNotification('error', 'Error deleting opportunity: ' + data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while deleting the opportunity.');
+                    showNotification('error', 'An error occurred while deleting the opportunity.');
                 });
             }
         }
     </script>
 </body>
 </html>
+
+
+
+
+

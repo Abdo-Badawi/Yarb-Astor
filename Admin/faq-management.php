@@ -12,8 +12,7 @@ if (!isset($_SESSION['auth_token'])) {
 }
 
 require_once '../Models/SupportContent.php';
-require_once '../Controllers/SupportController.php';
-use Models\SupportContent;
+require_once '../Controllers/SupportContent.php';
 
 // Initialize the controller
 $controller = new SupportController();

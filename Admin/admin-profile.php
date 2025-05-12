@@ -11,25 +11,11 @@ if (!isset($_SESSION['auth_token'])) {
     $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
 
-// Include the DBController to handle database operations
-include_once '../Controllers/DBController.php';
+// Include the ProfileController to handle profile operations
+include_once '../Controllers/profileController.php';
 
-// Get admin data from the database
-$db = new DBController();
-$userId = $_SESSION['userID'];
-$adminData = null;
-
-if ($db->openConnection()) {
-    $query = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
-    $params = [$userId];
-    $result = $db->selectPrepared($query, "i", $params);
-
-    if ($result && count($result) > 0) {
-        $adminData = $result[0];
-    }
-
-    $db->closeConnection();
-}
+// Get admin data using the ProfileController
+$adminData = viewAdminProfile();
 
 // If no admin data found, display an error
 if (!$adminData) {
@@ -56,36 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errorMsg = "Invalid email format.";
         } else {
-            // Update profile in database
-            if ($db->openConnection()) {
-                $updateQuery = "UPDATE users SET
-                               first_name = ?,
-                               last_name = ?,
-                               email = ?,
-                               phone_number = ?
-                               WHERE user_id = ? AND user_type = 'admin'";
-                $updateParams = [$firstName, $lastName, $email, $phone, $userId];
-
-                $result = $db->update($updateQuery, "ssssi", $updateParams);
-
-                if ($result) {
-                    $successMsg = "Profile updated successfully!";
-
-                    // Refresh admin data
-                    $query = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
-                    $params = [$userId];
-                    $result = $db->selectPrepared($query, "i", $params);
-
-                    if ($result && count($result) > 0) {
-                        $adminData = $result[0];
-                    }
-                } else {
-                    $errorMsg = "Failed to update profile. Please try again.";
-                }
-
-                $db->closeConnection();
+            // Prepare user data for update
+            $userData = [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'phone_number' => $phone
+            ];
+            
+            // Update profile using ProfileController
+            $result = updateAdminProfile($userData);
+            
+            if ($result) {
+                $successMsg = "Profile updated successfully!";
+                
+                // Refresh admin data
+                $adminData = viewAdminProfile();
             } else {
-                $errorMsg = "Database connection failed.";
+                $errorMsg = "Failed to update profile. Please try again.";
             }
         }
     }
@@ -110,10 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
         } elseif (strlen($newPassword) < 8) {
             $errorMsg = "Password must be at least 8 characters long.";
         } else {
+            // Include the DBController to handle database operations
+            include_once '../Controllers/DBController.php';
+            $db = new Database();
+            
             // Verify current password
             if ($db->openConnection()) {
                 $query = "SELECT password FROM users WHERE user_id = ? AND user_type = 'admin'";
-                $params = [$userId];
+                $params = [$_SESSION['userID']];
                 $result = $db->selectPrepared($query, "i", $params);
 
                 if ($result && count($result) > 0) {
@@ -124,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
                         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
                         $updateQuery = "UPDATE users SET password = ? WHERE user_id = ? AND user_type = 'admin'";
-                        $updateParams = [$hashedPassword, $userId];
+                        $updateParams = [$hashedPassword, $_SESSION['userID']];
 
                         $result = $db->update($updateQuery, "si", $updateParams);
 
@@ -772,3 +750,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     </script>
 </body>
 </html>
+
+

@@ -4,7 +4,6 @@ header('Content-Type: application/json');
 
 // Include required files
 require_once '../Controllers/FeeController.php';
-require_once '../Controllers/DBController.php';
 
 // Initialize controllers
 $feeController = new FeeController();

@@ -1,4 +1,6 @@
 <?php
+
+
 class Database {
     public $conn;
     
@@ -74,6 +76,8 @@ class Database {
     
     // Execute prepared SELECT query
     public function selectPrepared($query, $types, $params) {
+        error_reporting(0);
+        
         // Ensure connection is open
         if ($this->conn === null) {
             if (!$this->openConnection()) {
@@ -95,7 +99,45 @@ class Database {
             return false;
         }
         
-        $stmt->bind_param($types, ...$params);
+        // Only bind parameters if there are any
+        if (!empty($params)) {
+            // Convert params to array if it's not already
+            if (!is_array($params)) {
+                $params = [$params];
+            }
+            
+            // Create a reference array for bind_param
+            $bindParams = [];
+            $bindParams[] = $types;
+            
+            for ($i = 0; $i < count($params); $i++) {
+                $bindParams[] = &$params[$i];
+            }
+            
+            // Call bind_param with the reference array
+            try {
+                call_user_func_array([$stmt, 'bind_param'], $bindParams);
+            } catch (Exception $e) {
+                error_log("Error binding parameters: " . $e->getMessage());
+                error_log("Types: " . $types);
+                // Use json_encode with a fallback for non-encodable values
+                $paramsJson = json_encode($params, JSON_PARTIAL_OUTPUT_ON_ERROR);
+                if ($paramsJson === false) {
+                    error_log("Params: Unable to encode parameters");
+                    foreach ($params as $key => $value) {
+                        if (is_array($value)) {
+                            error_log("Param[$key] is an array");
+                        } else {
+                            error_log("Param[$key]: " . (is_object($value) ? get_class($value) : $value));
+                        }
+                    }
+                } else {
+                    error_log("Params: " . $paramsJson);
+                }
+                $stmt->close();
+                return false;
+            }
+        }
         
         if (!$stmt->execute()) {
             error_log("Execute failed: " . $stmt->error);
@@ -104,6 +146,13 @@ class Database {
         }
         
         $result = $stmt->get_result();
+        
+        if (!$result) {
+            error_log("Get result failed: " . $stmt->error);
+            $stmt->close();
+            return false;
+        }
+        
         $resultArray = [];
         
         while ($row = $result->fetch_assoc()) {
@@ -137,6 +186,12 @@ class Database {
             return false;
         }
         
+        // Convert params to array if it's not already
+        if (!is_array($params)) {
+            $params = [$params];
+        }
+        
+        // Use the spread operator to pass array elements as individual arguments
         $stmt->bind_param($types, ...$params);
         
         if (!$stmt->execute()) {
@@ -235,5 +290,21 @@ class Database {
         }
         return $this->conn ? $this->conn->insert_id : null;
     }
+    
+    /**
+     * Get the last database error message
+     * 
+     * @return string The last error message
+     */
+    public function getLastError() {
+        if (!$this->conn) {
+            return "No database connection";
+        }
+        
+        return $this->conn->error;
+    }
 }
 ?>
+
+
+

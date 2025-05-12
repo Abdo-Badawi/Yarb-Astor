@@ -1,9 +1,9 @@
 <?php
 require_once '../Models/Database.php';
-require_once '../Models/User.php';
-use Models\User;
-class Admin extends User{
-    private $db;
+require_once 'User.php';
+
+class Admin extends User {
+    protected $db;
 
     public function __construct() {
         $this->db = new Database();
@@ -181,5 +181,68 @@ class Admin extends User{
 
         return $result ?: [];
     }
+
+    public function getUserData($userID) {
+        if (!$this->db->openConnection()) {
+            return null; // If DB connection fails, return null
+        }
+
+        // Check if the user exists in the users table
+        $checkQuery = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
+        $checkParams = [$userID];
+        $adminData = $this->db->selectPrepared($checkQuery, "i", $checkParams);
+        
+        // If no admin record exists, return null
+        if (!$adminData) {
+            $this->db->closeConnection();
+            return null;
+        }
+
+        // Query to select admin data
+        $query = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
+        
+        // Prepare parameters
+        $params = [$userID];
+        
+        // Fetch user data
+        $userData = $this->db->selectPrepared($query, "i", $params);
+
+        // Close the connection after fetching the data
+        $this->db->closeConnection();
+
+        // If no user data found, return null
+        return $userData ? $userData[0] : null;
+    }
+    public function updateUserProfile($userId, $userData) {
+        if (!$this->db->openConnection()) {
+            return false;
+        }
+        
+        // Update users table
+        $userQuery = "UPDATE users SET 
+                     first_name = ?,
+                     last_name = ?,
+                     email = ?,
+                     phone_number = ? 
+                     WHERE user_id = ? AND user_type = 'admin'";
+        $userParams = [
+            $userData['first_name'],
+            $userData['last_name'],
+            $userData['email'],
+            $userData['phone_number'],
+            $userId
+        ];
+        
+        $result = $this->db->update($userQuery, "ssssi", $userParams);
+        
+        $this->db->closeConnection();
+        
+        return $result;
+    }
 }
 ?>
+
+
+
+
+
