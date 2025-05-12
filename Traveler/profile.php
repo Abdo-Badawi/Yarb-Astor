@@ -11,13 +11,12 @@ if (!isset($_SESSION['auth_token'])) {
     $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
 
-
-
 // Assuming user_id is stored in session
 $userId = $_SESSION['userID'];
 
-// Using the function directly since profileController.php seems to define functions, not a class
-$userData = viewTravelerProfile();
+// Create an instance of ProfileController
+$profileController = new ProfileController();
+$userData = $profileController->viewTravelerProfile();
 
 // If no user data is found, display an error
 if (!$userData) {
@@ -170,6 +169,10 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+
+
+
+
 
 
 

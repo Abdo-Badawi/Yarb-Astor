@@ -1,10 +1,11 @@
 <?php
 session_start();
 include_once '../Controllers/profileController.php';
+include_once '../Models/Database.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['userID'])) {
-    header("Location: ../login.php");
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
+    header("Location: ../Common/login.php");
     exit;
 }
 
@@ -13,7 +14,7 @@ $userId = $_SESSION['userID'];
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Create profile controller
-    $profileController = new $profileController();
+    $profileController = new ProfileController();
     
     // Collect form data
     $userData = [
@@ -29,8 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     
     // Check if email is being changed and validate it's unique
-    if ($_POST['email'] !== $userData['email']) {
-        // Create a new DB connection to check email
+    if (isset($_SESSION['email']) && $_POST['email'] !== $_SESSION['email']) {
         $db = new Database();
         if ($db->openConnection()) {
             $query = "SELECT user_id FROM users WHERE email = ? AND user_id != ?";
@@ -70,11 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Update profile
-    $result = $profileController->updateUserProfile($userId, $userData);
+    $result = $profileController->updateTravelerProfile($userId, $userData);
 
     if ($result) {
         // Update session email if it was changed
-        if ($_SESSION['email'] !== $_POST['email']) {
+        if (isset($_SESSION['email']) && $_SESSION['email'] !== $_POST['email']) {
             $_SESSION['email'] = $_POST['email'];
         }
         $_SESSION['success_message'] = "Profile updated successfully!";
@@ -87,3 +87,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 ?>
+

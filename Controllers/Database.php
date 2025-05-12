@@ -1,11 +1,9 @@
 <?php
-require_once __DIR__ . '/../Controllers/DBController.php';
 
 class Database {
     private $dbController;
     
     public function __construct() {
-        $this->dbController = new DBController();
         $this->dbController->openConnection();
     }
     

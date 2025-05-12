@@ -2,16 +2,16 @@
 session_start();
 
 // Include the TravelerProfileController to handle the logic
-include_once '../Controllers/TravelerProfileController.php';
+include_once '../Controllers/profileController.php';
 
 // Assuming user_id is stored in session
 $userId = $_SESSION['userID'];
 
-// Create an instance of TravelerProfileController
-$profileController = new TravelerProfileController();
+// Create an instance of ProfileController
+$profileController = new ProfileController();
 
 // Fetch user data
-$userData = $profileController->getUserData($userId);
+$userData = $profileController->viewTravelerProfile();
 
 // If no user data is found, redirect to profile
 if (!$userData) {

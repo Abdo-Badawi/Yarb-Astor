@@ -219,10 +219,10 @@ class Database {
             return false;
         }
         
-        $affectedRows = $stmt->affected_rows;
+        $affected = $stmt->affected_rows;
         $stmt->close();
         
-        return $affectedRows > 0;
+        return $affected > 0;
     }
     
     // Get last insert ID
@@ -237,3 +237,4 @@ class Database {
     }
 }
 ?>
+

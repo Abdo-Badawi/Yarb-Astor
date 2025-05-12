@@ -87,7 +87,7 @@ class FeeController {
 
         $this->db->openConnection();
         $result = $this->db->insert($sql, $types, array_values($dbData));
-        $insertId = $this->db->getLastInsertId();
+        $insertId = $this->db->getInsertId();
         $this->db->closeConnection();
 
         return $insertId;
@@ -172,7 +172,7 @@ class FeeController {
 
         $this->db->openConnection();
         $result = $this->db->insert($sql, $types, array_values($dbData));
-        $insertId = $this->db->getLastInsertId();
+        $insertId = $this->db->getInsertId();
         $this->db->closeConnection();
 
         return $insertId;

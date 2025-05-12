@@ -1,28 +1,39 @@
 <?php
-    include_once '../Models/Traveler.php';
-    // include_once '../Models/Host.php';
-    // include_once '../Models/Admin.php';
+include_once '../Models/Traveler.php';
+include_once '../Models/Host.php';
+// include_once '../Models/Admin.php';
+class ProfileController {
 
-    function viewHostProfile(){
-
+    function viewHostProfile() {
+        $host = new Host();
+        $hostId = $_SESSION['userID'];
+        $hostProfile = $host->getUserData($hostId);
+        return $hostProfile;    
     }
 
-    function viewTravelerProfile(){
+    function updateHostProfile($userId, $userData) {
+        $host = new Host();
+        // Make sure we're using the correct method
+        $result = $host->updateUserProfile($userId, $userData);
+        return $result;        
+    }
+
+    function viewTravelerProfile() {
         $traveler = new Traveler();
         $travelerId = $_SESSION['userID'];
         $travelerProfile = $traveler->getUserData($travelerId);
         return $travelerProfile;
     }
 
-    function updateTravelerProfile() {
+    function updateTravelerProfile($userId, $userData) {
         $traveler = new Traveler();
-        $travelerId = $_SESSION['userID'];
-        $travelerProfile = $traveler->getUserData($travelerId);
-        return $travelerProfile;        
+        // Make sure we're using the correct method
+        $result = $traveler->updateUserProfile($userId, $userData);
+        return $result;        
     }
 
-    function viewAdminProfile(){
-
+    function viewAdminProfile() {
+        // Implementation for admin profile
     }
-
+}
 ?>

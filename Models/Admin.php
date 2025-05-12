@@ -5,6 +5,7 @@ use Models\User;
 class Admin extends User{
     private $db;
 
+
     public function __construct() {
         $this->db = new Database();
     }

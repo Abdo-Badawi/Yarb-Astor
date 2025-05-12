@@ -1,7 +1,6 @@
 <?php
 require_once '../Models/Database.php';
 require_once '../Models/User.php';
-use Models\User;
 class Host extends User{
     
     private string $hostID;
@@ -14,7 +13,7 @@ class Host extends User{
     private string $location;
     private \DateTime $createdAt;            // TIMESTAMP
     private string $status;  
-    private $db;
+    protected $db;
 
     public function __construct() {
         $this->db = new Database();
@@ -149,7 +148,7 @@ class Host extends User{
     }
 
     public function updateUserProfile($userId, $userData) {
-        if (!$this->db->openConnection() || !$this->db->conn) {
+        if (!$this->db->openConnection()) {
             return false;
         }
         
@@ -162,26 +161,36 @@ class Host extends User{
                          first_name = ?,
                          last_name = ?,
                          email = ?,
-                         phone_number = ?, 
-                         profile_picture = ? 
-                         WHERE user_id = ?";
+                         phone_number = ?";
+            
             $userParams = [
                 $userData['first_name'],
                 $userData['last_name'],
                 $userData['email'],
-                $userData['phone_number'],
-                $userData['profile_picture'] ?? null,
-                $userId
+                $userData['phone_number']
             ];
             
-            $userResult = $this->db->insert($userQuery, "sssssi", $userParams);
+            // Add profile picture to query if provided
+            if (isset($userData['profile_picture'])) {
+                $userQuery .= ", profile_picture = ?";
+                $userParams[] = $userData['profile_picture'];
+                $userTypes = "sssss";
+            } else {
+                $userTypes = "ssss";
+            }
+            
+            $userQuery .= " WHERE user_id = ?";
+            $userParams[] = $userId;
+            $userTypes .= "i";
+            
+            $userResult = $this->db->update($userQuery, $userTypes, $userParams);
             
             // Update hosts table
             $hostQuery = "UPDATE hosts SET 
                          preferred_language = ?, 
                          bio = ?, 
-                         location = ?, 
-                         property_type = ? 
+                         location = ?,
+                         property_type = ?
                          WHERE host_id = ?";
             $hostParams = [
                 $userData['preferred_language'],
@@ -191,7 +200,7 @@ class Host extends User{
                 $userId
             ];
             
-            $hostResult = $this->db->insert($hostQuery, "ssssi", $hostParams);
+            $hostResult = $this->db->update($hostQuery, "ssssi", $hostParams);
             
             if ($userResult && $hostResult) {
                 $this->db->conn->commit();
@@ -207,3 +216,4 @@ class Host extends User{
         }
     }
 }
+

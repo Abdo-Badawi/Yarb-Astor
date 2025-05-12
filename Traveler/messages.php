@@ -1,19 +1,24 @@
 <?php
 session_start();
 require_once '../Controllers/MessageController.php';
-require_once '../Controllers/HostController.php';
+// require_once '../Controllers/HostController.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['userID'])) {
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
     header("Location: ../Common/login.php");
     exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
 
 $travelerId = $_SESSION['userID'];
 
 // Create controllers
 $messageController = new MessageController();
-$hostController = new HostController();
+// $hostController = new HostController();
 
 // Get all conversations for this traveler
 $conversations = $messageController->getRecentConversations($travelerId, 'traveler');
@@ -54,23 +59,25 @@ else if (!empty($conversations)) {
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $activeHostId) {
-    $messageData = [
-        'sender_id' => $travelerId,
-        'receiver_id' => $activeHostId,
-        'message' => $_POST['message'],
-        'status' => 'delivered',
-        'is_read' => 0,
-        'sender_type' => 'traveler',
-        'receiver_type' => 'host'
-    ];
-    
-    $result = $messageController->sendMessage($messageData);
-    
-    if ($result) {
-        // Redirect to prevent form resubmission
-        header("Location: messages.php?host_id=" . $activeHostId);
-        exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['token']) && $_POST['token'] === $_SESSION['auth_token']) {
+    if ($activeHostId) {
+        $messageData = [
+            'sender_id' => $travelerId,
+            'receiver_id' => $activeHostId,
+            'message' => $_POST['message'],
+            'status' => 'delivered',
+            'is_read' => 0,
+            'sender_type' => 'traveler',
+            'receiver_type' => 'host'
+        ];
+        
+        $result = $messageController->sendMessage($messageData);
+        
+        if ($result) {
+            // Redirect to prevent form resubmission
+            header("Location: messages.php?host_id=" . $activeHostId);
+            exit;
+        }
     }
 }
 ?>
@@ -376,4 +383,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
         });
     </script>
 </body>
+
 

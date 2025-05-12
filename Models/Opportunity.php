@@ -351,7 +351,8 @@ class Opportunity {
                 end_date = ?,
                 category = ?,
                 requirements = ?,
-                opportunity_photo = ?
+                opportunity_photo = ?,
+                status = ?
                 WHERE opportunity_id = ?";
 
         $params = [
@@ -363,11 +364,12 @@ class Opportunity {
             $opportunityData['category'],
             $opportunityData['requirements'],
             $opportunityData['image_path'],
+            $opportunityData['status'] ?? 'open', // Default to 'open' if not provided
             $opportunityData['opportunity_id']
         ];
 
         $this->db->openConnection();
-        $result = $this->db->update($sql, "ssssssssi", $params);
+        $result = $this->db->update($sql, "sssssssssi", $params);
         $this->db->closeConnection();
 
         return $result;
