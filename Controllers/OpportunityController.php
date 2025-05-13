@@ -2,7 +2,6 @@
 // No namespace declaration - this class is in the global namespace
 require_once '../Models/Database.php';
 require_once '../Models/Opportunity.php';
-require_once '../Models/Opportunity.php';
 
 class OpportunityController {
     private $db;
@@ -19,7 +18,6 @@ class OpportunityController {
      * @return array Array of all opportunities
      */
     public function getAllOpportunities() {
-        // Use select instead of selectPrepared since there are no parameters
         return $this->opportunityModel->getAllOpportunities();
     }
 
@@ -50,7 +48,36 @@ class OpportunityController {
      * @return bool True if successful, false otherwise
      */
     public function deleteOpportunity($opportunityId) {
+        // First, check if there are any active applications for this opportunity
+        $applications = $this->getApplicationsByOpportunityId($opportunityId);
+        $hasActiveApplications = false;
+        
+        if ($applications) {
+            foreach ($applications as $application) {
+                if ($application['status'] === 'accepted') {
+                    $hasActiveApplications = true;
+                    break;
+                }
+            }
+        }
+        
+        // If there are active applications, don't allow deletion
+        if ($hasActiveApplications) {
+            return false;
+        }
+        
+        // Proceed with deletion
         return $this->opportunityModel->deleteOpportunity($opportunityId);
+    }
+    
+    /**
+     * Get applications by opportunity ID
+     * 
+     * @param int $opportunityId The opportunity ID
+     * @return array|null Array of applications or null if none found
+     */
+    public function getApplicationsByOpportunityId(int $opportunityId): ?array {
+        return $this->opportunityModel->getApplicationsByOpportunityId($opportunityId);
     }
 
     /**
@@ -82,6 +109,17 @@ class OpportunityController {
     public function getOpportunitiesByTravelerID($travelerId) {
         return $this->opportunityModel->getOpportunitiesByTravelerID($travelerId);
     }
+    
+    /**
+     * Check if traveler has applied to an opportunity
+     * 
+     * @param int $travelerId The traveler ID
+     * @param int $opportunityId The opportunity ID
+     * @return bool True if applied, false otherwise
+     */
+    public function checkApplied($travelerId, $opportunityId) {
+        return $this->opportunityModel->checkIfTravelerApplied($travelerId, $opportunityId);
+    }
 
     /**
      * Update an opportunity
@@ -94,98 +132,6 @@ class OpportunityController {
     }
 
     /**
-     * Save a new opportunity to the database
-     * 
-     * @param Models\Opportunity $opportunity The opportunity object
-     * @return bool True if successful, false otherwise
-     */
-    public function saveOpportunityToDB($opportunity) {
-        return $this->opportunityModel->saveOpportunityToDB($opportunity);
-    }
-}
-?>
-
-
-
-
-
-
-
-
-
-
-    function getActiveOpp(){
-        $opportunity = new Opportunity();
-        $activeOpportunities = $opportunity->getActiveOpportunities();
-        return $activeOpportunities;
-    }
-
-    function getOppByTravelerID($travelerID){
-        $opportunity = new Opportunity();
-        $appliedOpportunities = $opportunity->getOpportunitiesByTravelerID($travelerID);
-        return $appliedOpportunities;
-    }
-
-    function getOppById($opportunityId){
-        $opportunity = new Opportunity();
-        $opportunityData = $opportunity->getOpportunityById($opportunityId);
-        return $opportunityData;
-    }
-
-    function checkApplied($travelerID, $opportunityId){
-        $opportunity = new Opportunity();
-        $hasApplied = $opportunity->checkIfTravelerApplied($travelerID, $opportunityId);
-    }
-
-    function getOppByHostId($hostID){
-        $opportunity = new Opportunity();
-        $opportunityData = $opportunity->getOpportunitiesByHostID($hostID);
-        return $opportunityData;
-    }    
-
-    function updateOpp($updateData){
-        $opportunity = new Opportunity();
-        $result = $opportunity->updateOpportunity($updateData);
-        return $result;
-    }
-
-    function updateOppStatus($opportunityId, $status){
-        $opportunity = new Opportunity();
-        $result = $opportunity->updateOpportunityStatus($opportunityId, $status);
-        return $result;
-    }
-
-    public function deleteOpportunity(int $opportunityId): bool {
-        $opportunity = new Opportunity();
-        
-        // First, check if there are any active applications for this opportunity
-        $applications = $this->getApplicationsByOpportunityId($opportunityId);
-        $hasActiveApplications = false;
-        
-        if ($applications) {
-            foreach ($applications as $application) {
-                if ($application['status'] === 'accepted') {
-                    $hasActiveApplications = true;
-                    break;
-                }
-            }
-        }
-        
-        // If there are active applications, don't allow deletion
-        if ($hasActiveApplications) {
-            return false;
-        }
-        
-        // Proceed with deletion
-        return $opportunity->deleteOpportunity($opportunityId);
-    }
-    
-    public function getApplicationsByOpportunityId(int $opportunityId): ?array {
-        $opportunity = new Opportunity();
-        return $opportunity->getApplicationsByOpportunityId($opportunityId);
-    }
-
-    /**
      * Create a new opportunity
      * 
      * @param array $data Opportunity data
@@ -194,7 +140,7 @@ class OpportunityController {
     public function createOpportunity(array $data): bool {
         try {
             // Create a new Opportunity model
-            $opportunityModel = new Opportunity();
+            $opportunityModel = new Models\Opportunity("", "", "", new \DateTime(), new \DateTime(), "");
             
             // Prepare opportunity data
             $opportunityData = [
@@ -204,8 +150,8 @@ class OpportunityController {
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
                 'category' => $data['category'],
-                'opportunity_photo' => $data['image_path'],
-                'requirements' => $data['requirements'],
+                'opportunity_photo' => $data['image_path'] ?? '',
+                'requirements' => $data['requirements'] ?? '',
                 'host_id' => $data['host_id'],
                 'status' => 'open'
             ];
@@ -221,18 +167,90 @@ class OpportunityController {
     /**
      * Save opportunity to database
      * 
-     * @param Opportunity $opportunity The opportunity object
+     * @param Models\Opportunity $opportunity The opportunity object
      * @return bool True if save was successful, false otherwise
      */
     public function saveOpportunityToDB($opportunity): bool {
         try {
-            $model = new Opportunity();
-            return $model->saveOpportunityToDB($opportunity);
+            return $this->opportunityModel->saveOpportunityToDB($opportunity);
         } catch (Exception $e) {
             error_log("Error saving opportunity: " . $e->getMessage());
             return false;
         }
     }
+    
+    /**
+     * Get featured opportunities
+     * 
+     * @param int $limit Number of opportunities to return
+     * @return array Array of featured opportunities
+     */
+    public function getFeaturedOpportunities(int $limit = 3): array {
+        return $this->opportunityModel->getFeaturedOpportunities($limit);
+    }
+    
+    /**
+     * Get recent opportunities
+     * 
+     * @param int $limit Number of opportunities to return
+     * @return array Array of recent opportunities
+     */
+    public function getRecentOpportunities(int $limit = 5): array {
+        return $this->opportunityModel->getRecentOpportunities($limit);
+    }
+    
+    /**
+     * Apply to an opportunity
+     * 
+     * @param int $travelerId The traveler ID
+     * @param int $opportunityId The opportunity ID
+     * @param string $message Application message
+     * @return bool True if application was successful, false otherwise
+     */
+    public function applyToOpportunity(int $travelerId, int $opportunityId, string $message = ''): bool {
+        return $this->opportunityModel->applyToOpportunity($travelerId, $opportunityId, $message);
+    }
+    
+    /**
+     * Get application status
+     * 
+     * @param int $travelerId The traveler ID
+     * @param int $opportunityId The opportunity ID
+     * @return string|null The application status or null if not found
+     */
+    public function getApplicationStatus(int $travelerId, int $opportunityId): ?string {
+        return $this->opportunityModel->getApplicationStatus($travelerId, $opportunityId);
+    }
+    
+    /**
+     * Update application status
+     * 
+     * @param int $applicationId The application ID
+     * @param string $status The new status
+     * @return bool True if successful, false otherwise
+     */
+    public function updateApplicationStatus(int $applicationId, string $status): bool {
+        return $this->opportunityModel->updateApplicationStatus($applicationId, $status);
+    }
+    
+    /**
+     * Get applications by traveler ID
+     * 
+     * @param int $travelerId The traveler ID
+     * @return array Array of applications
+     */
+    public function getApplicationsByTravelerId(int $travelerId): array {
+        return $this->opportunityModel->getApplicationsByTravelerId($travelerId);
+    }
+    
+    /**
+     * Get applications for a host
+     * 
+     * @param int $hostId The host ID
+     * @return array Array of applications for the host's opportunities
+     */
+    public function getApplicationsForHost(int $hostId): array {
+        return $this->opportunityModel->getApplicationsForHost($hostId);
+    }
 }
 ?>
-
