@@ -8,17 +8,28 @@ if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
 
 require_once '../Controllers/OpportunityController.php';
 require_once '../Models/Opportunity.php';
-use Models\Opportunity;
 
-// Assuming the user is logged in and their ID is stored in session
-$hostID = isset($_SESSION['userID']) ? $_SESSION['userID'] : null;
+// Initialize variables
+$successMsg = null;
+$errMsg = null;
 
-if ($hostID) {
-    $opportunityController = new OpportunityController();
-    $opportunities = $opportunityController->getOpportunitiesByHostID($hostID);
-} else {
-    $opportunities = [];
+// Check if there are success or error messages in the session
+if (isset($_SESSION['opportunity_success'])) {
+    $successMsg = $_SESSION['opportunity_success'];
+    unset($_SESSION['opportunity_success']); // Clear the message after displaying
 }
+
+if (isset($_SESSION['opportunity_error'])) {
+    $errMsg = $_SESSION['opportunity_error'];
+    unset($_SESSION['opportunity_error']); // Clear the message after displaying
+}
+
+// Create opportunity controller
+$opportunityController = new OpportunityController();
+
+// Get all opportunities for the current host
+$hostId = $_SESSION['userID'];
+$opportunities = $opportunityController->getOppByHostId($hostId);
 ?>
 
 <!DOCTYPE html>
@@ -73,6 +84,21 @@ if ($hostID) {
                 <p class="mb-0">Manage your cultural exchange opportunities and volunteer positions</p>
             </div>
 
+            <!-- Success and Error Messages - only instance -->
+            <?php if ($successMsg): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($successMsg) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($errMsg): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($errMsg) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <!-- Filters -->
             <div class="row mb-4">
                 <div class="col-12">
@@ -111,9 +137,38 @@ if ($hostID) {
                 <?php
                 // Print the opportunities using the printOpportunities method
                 if (empty($opportunities)) {
-                    echo "<p>No opportunities found for this host.</p>";
+                    echo "<div class='col-12 text-center'><p class='alert alert-info'>You haven't created any opportunities yet. <a href='create-opportunity.php' class='alert-link'>Create your first opportunity</a> to start connecting with travelers!</p></div>";
                 } else {
-                    Opportunity::printOpportunities($opportunities);
+                    foreach ($opportunities as $opportunity) {
+                        $statusClass = ($opportunity['status'] === 'open') ? 'bg-success' : 
+                                      (($opportunity['status'] === 'closed') ? 'bg-danger' : 
+                                      (($opportunity['status'] === 'cancelled') ? 'bg-warning' : 'bg-secondary'));
+                        
+                        echo '<div class="col-lg-6 mb-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <img src="../uploads/opportunities/' . ($opportunity['opportunity_photo'] ?? 'default.jpg') . '" alt="Opportunity" class="img-fluid rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+                                            <h5 class="card-title mb-0">' . htmlspecialchars($opportunity['title']) . '</h5>
+                                            <span class="badge ' . $statusClass . ' text-white">' . ucfirst($opportunity['status']) . '</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <p class="mb-2"><i class="fa fa-clock me-2"></i>Created: ' . date('M d, Y', strtotime($opportunity['created_at'])) . '</p>
+                                            <p class="mb-2"><i class="bi bi-tags-fill me-2"></i>Category: ' . htmlspecialchars($opportunity['category']) . '</p>
+                                            <p class="mb-2"><i class="fa fa-map-marker-alt me-2"></i>Location: ' . htmlspecialchars($opportunity['location']) . '</p>
+                                            <p class="mb-2"><i class="bi bi-calendar-fill me-2"></i>Dates: ' . date('M d', strtotime($opportunity['start_date'])) . ' - ' . date('M d, Y', strtotime($opportunity['end_date'])) . '</p>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <div>
+                                                <a href="edit-opportunity.php?id=' . $opportunity['opportunity_id'] . '" class="btn btn-primary me-2 px-3">Edit</a>
+                                                <button class="btn btn-danger me-2 px-3" onclick="deleteOpportunity(' . $opportunity['opportunity_id'] . ')">Delete</button>
+                                            </div>
+                                            ' . (($opportunity['status'] === 'open') ? '<button class="btn btn-sm btn-warning" onclick="markAsFilled(' . $opportunity['opportunity_id'] . ')">Mark Filled</button>' : '') . '
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+                    }
                 }
                 ?>
             </div>
@@ -282,9 +337,33 @@ if ($hostID) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Opportunity deleted successfully!');
-                    // Reload the page to refresh the opportunities list
-                    location.reload();
+                    // Show success message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>Opportunity deleted successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    
+                    // Insert the alert at the top of the opportunities container
+                    const container = document.querySelector('.container.py-5');
+                    const header = container.querySelector('.text-center.mb-5');
+                    container.insertBefore(alertDiv, header.nextSibling);
+                    
+                    // Remove the opportunity card from the DOM
+                    const card = document.querySelector(`.opportunity-card[data-id="${id}"]`);
+                    if (card) {
+                        card.closest('.col-lg-4').remove();
+                    }
+                    
+                    // Scroll to the top to show the success message
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                    
+                    // Auto-dismiss the alert after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.classList.remove('show');
+                        setTimeout(() => alertDiv.remove(), 150);
+                    }, 3000);
                 } else {
                     alert('Error: ' + (data.error || 'Unknown error'));
                 }
@@ -359,6 +438,26 @@ if ($hostID) {
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

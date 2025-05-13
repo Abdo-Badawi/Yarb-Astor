@@ -186,19 +186,29 @@ class Traveler extends User{
                          first_name = ?,
                          last_name = ?,
                          email = ?,
-                         phone_number = ?, 
-                         profile_picture = ? 
-                         WHERE user_id = ?";
+                         phone_number = ?";
+            
             $userParams = [
                 $userData['first_name'],
                 $userData['last_name'],
                 $userData['email'],
-                $userData['phone_number'],
-                $userData['profile_picture'] ?? null,
-                $userId
+                $userData['phone_number']
             ];
             
-            $userResult = $this->db->insert($userQuery, "sssssi", $userParams);
+            // Add profile picture to query if provided
+            if (isset($userData['profile_picture'])) {
+                $userQuery .= ", profile_picture = ?";
+                $userParams[] = $userData['profile_picture'];
+                $userTypes = "sssss";
+            } else {
+                $userTypes = "ssss";
+            }
+            
+            $userQuery .= " WHERE user_id = ?";
+            $userParams[] = $userId;
+            $userTypes .= "i";
+            
+            $userResult = $this->db->update($userQuery, $userTypes, $userParams);
             
             // Update traveler table
             $travelerQuery = "UPDATE traveler SET 
@@ -217,7 +227,7 @@ class Traveler extends User{
                 $userId
             ];
             
-            $travelerResult = $this->db->insert($travelerQuery, "sssssi", $travelerParams);
+            $travelerResult = $this->db->update($travelerQuery, "sssssi", $travelerParams);
             
             if ($userResult && $travelerResult) {
                 $this->db->conn->commit();
@@ -234,6 +244,7 @@ class Traveler extends User{
     }
 }
 ?>
+
 
 
 

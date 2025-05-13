@@ -1,8 +1,19 @@
 <?php
-include_once '../Controllers/ReviewController.php';
+session_start();
+// Check if user is logged in and is a traveler
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
+    header("Location: ../Common/login.php");
+    exit;
+}
 
-$reviewController = new ReviewController();
-$reviews = $reviewController->getReviewsByUser($_SESSION['userID']);
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+
+include_once '../Controllers/ReivewController.php';
+$reviewController = new ReivewController();
+$reviews = $reviewController->getReviews($_SESSION['userID']);
 ?>
 
 <!DOCTYPE html>
@@ -14,8 +25,11 @@ $reviews = $reviewController->getReviewsByUser($_SESSION['userID']);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+<?php include 'navTraveler.php'; ?>
 
 <div class="container py-5">
     <h1 class="mb-4">User Reviews</h1>
@@ -48,10 +62,6 @@ $reviews = $reviewController->getReviewsByUser($_SESSION['userID']);
                             <p class="mb-2"><i class="bi bi-star text-warning"></i> <strong>Rating:</strong> <?php echo htmlspecialchars($review['rating']); ?>/5</p>
                             <p class="mb-2"><i class="bi bi-chat-dots"></i> <?php echo nl2br(htmlspecialchars($review['comment'])); ?></p>
 
-                            <p class="mt-3 small <?php echo $review['is_reported'] ? 'text-danger' : 'text-success'; ?>">
-                                <i class="bi <?php echo $review['is_reported'] ? 'bi-flag-fill' : 'bi-check-circle-fill'; ?>"></i>
-                                <?php echo $review['is_reported'] ? 'This review is reported' : 'Published'; ?>
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -64,3 +74,9 @@ $reviews = $reviewController->getReviewsByUser($_SESSION['userID']);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+
+
+
+
+

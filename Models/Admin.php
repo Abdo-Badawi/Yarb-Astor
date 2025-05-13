@@ -5,6 +5,7 @@ require_once 'User.php';
 class Admin extends User {
     protected $db;
 
+
     public function __construct() {
         $this->db = new Database();
     }

@@ -29,7 +29,7 @@ if (!in_array($status, $validStatuses)) {
 $opportunityController = new OpportunityController();
 
 // Get opportunity to verify ownership
-$opportunity = $opportunityController->getOpportunityById($opportunityId);
+$opportunity = $opportunityController->getOppById($opportunityId);
 
 // Check if opportunity exists and belongs to the current host
 if (!$opportunity || $opportunity['host_id'] != $hostId) {
@@ -38,7 +38,7 @@ if (!$opportunity || $opportunity['host_id'] != $hostId) {
 }
 
 // Update the opportunity status
-$result = $opportunityController->updateOpportunityStatus($opportunityId, $status);
+$result = $opportunityController->updateOppStatus($opportunityId, $status);
 
 if ($result) {
     echo json_encode(['success' => true]);

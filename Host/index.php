@@ -15,7 +15,7 @@ require_once '../Controllers/DashboardController.php';
 
 $hostID = $_SESSION['userID'];
 $dashboardController = new DashboardController();
-$dashboardData = $dashboardController->getHostDashboardData($hostID);
+$dashboardData = $dashboardController->getHostDash($hostID);
 
 // Extract dashboard data
 $stats = $dashboardData['stats'];

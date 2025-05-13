@@ -13,7 +13,6 @@ $hostID = $_SESSION['userID'];
 
 // Initialize controller and get applications
 $applicationController = new ApplicationController();
-$applications = $applicationController->getApplicationByOpportunityID($hostID);
 
 // Process application status updates if form submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['application_id'])) {
@@ -21,17 +20,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     $action = $_POST['action'];
     
     if ($action === 'accept') {
-        $applicationController->updateApplicationStatus($applicationId, 'accepted');
+        $applicationController->updateAppStat($applicationId, 'accepted');
         $_SESSION['success_message'] = "Application has been accepted successfully.";
     } elseif ($action === 'reject') {
-        $applicationController->updateApplicationStatus($applicationId, 'rejected');
+        $applicationController->updateAppStat($applicationId, 'rejected');
         $_SESSION['success_message'] = "Application has been rejected.";
     }
     
-    // Redirect to refresh the page
+    // Redirect to refresh the page - but with a GET request
     header('Location: applications.php');
     exit;
 }
+
+// Get applications AFTER processing any status updates
+$applications = $applicationController->getApplicationByOpportunityID($hostID);
 ?>
 
 <!DOCTYPE html>
@@ -305,5 +307,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 </body>
 
 </html>
+
 
 

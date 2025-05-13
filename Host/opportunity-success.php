@@ -101,7 +101,7 @@ unset($_SESSION['opportunity_success']);
                             <p class="lead mb-4">Your opportunity has been created successfully and is now available for volunteers to view and apply.</p>
                             <div class="d-flex justify-content-center gap-3">
                                 <a href="create-opportunity.php" class="btn btn-primary">Create Another Opportunity</a>
-                                <a href="manage-opportunities.php" class="btn btn-outline-primary">Manage Your Opportunities</a>
+                                <a href="opportunities.php" class="btn btn-outline-primary">Manage Your Opportunities</a>
                             </div>
                         </div>
                     </div>

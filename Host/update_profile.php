@@ -1,18 +1,13 @@
 <?php
-
 session_start();
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'admin') {
+// Check if user is logged in and is a host
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
 }
-include_once '../Controllers/ProfileController.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['userID'])) {
-    header("Location: ../login.php");
-    exit;
-}
+include_once '../Controllers/ProfileController.php';
+include_once '../Models/Database.php';
 
 $userId = $_SESSION['userID'];
 
@@ -34,9 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     
     // Check if email is being changed and validate it's unique
-    if ($_POST['email'] !== $userData['email']) {
-        // Create a new DB connection to check email
-        $db = new DBController();
+    if (isset($_SESSION['email']) && $_POST['email'] !== $_SESSION['email']) {
+        $db = new Database();
         if ($db->openConnection()) {
             $query = "SELECT user_id FROM users WHERE email = ? AND user_id != ?";
             $params = [$_POST['email'], $userId];
@@ -75,22 +69,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Update profile
-    $result = $profileController->updateUserProfile($userId, $userData);
+    $result = $profileController->updateHostProfile($userId, $userData);
 
     if ($result) {
         // Update session email if it was changed
-        if ($_SESSION['email'] !== $_POST['email']) {
+        if (isset($_SESSION['email']) && $_SESSION['email'] !== $_POST['email']) {
             $_SESSION['email'] = $_POST['email'];
         }
-        $_SESSION['success_message'] = "Profile updated successfully!";
+        $_SESSION['success_message'] = "Your profile has been updated successfully! All changes have been saved.";
     } else {
-        $_SESSION['error_message'] = "Failed to update profile. Please try again.";
+        $_SESSION['error_message'] = "We couldn't update your profile. Please check your information and try again.";
     }
     
     // Redirect back to profile page
     header("Location: profile.php");
     exit;
 }
-?>
+
+// If not a POST request, redirect to edit profile page
+header("Location: edit_profile.php");
+exit;
+
 
 

@@ -1,7 +1,5 @@
 <?php
-
 session_start();
-// Check if user is logged in and is an admin
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
@@ -17,13 +15,21 @@ $userId = $_SESSION['userID'];
 $profileController = new ProfileController();
 
 // Fetch user data
-$userData = $profileController->getUserData($userId);
+$userData = $profileController->viewHostProfile();
 
 // If no user data is found, redirect to profile
 if (!$userData) {
     header("Location: profile.php");
     exit;
 }
+
+// Check for success or error messages
+$successMessage = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$errorMessage = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 ?>
 
 <!DOCTYPE html>
@@ -36,19 +42,44 @@ if (!$userData) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
+
 </head>
 
 <body>
 <?php include 'navHost.php'; ?>
 
-<!-- Edit Profile Start -->
 <div class="container-fluid py-5">
-    <div class="container py-5">
-        <div class="text-center mb-5">
-            <h1 class="mb-3">Edit Profile</h1>
-            <h6 style="color:#757575" class="mb-0">Update your personal information and preferences</h6>
+    <div class="container">
+        <div class="text-center mx-auto mb-4" style="max-width: 500px;">
+            <h1 class="display-5">Edit Your Profile</h1>
+            <hr class="w-25 mx-auto text-primary" style="opacity: 1;">
         </div>
+        
+        <!-- Success and Error Messages positioned right after the title -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8 mb-4">
+                <?php if ($successMessage): ?>
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-2" style="font-size: 1.25rem;"></i>
+                            <strong><?= htmlspecialchars($successMessage) ?></strong>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
 
+                <?php if ($errorMessage): ?>
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle me-2" style="font-size: 1.25rem;"></i>
+                            <strong><?= htmlspecialchars($errorMessage) ?></strong>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm">
@@ -66,19 +97,18 @@ if (!$userData) {
                                     <input type="file" id="profile_picture" name="profile_picture" class="d-none">
                                 </div>
                             </div>
-
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">First Name</label>
-                                    <input type="text" name="first_name" class="form-control" value="<?= htmlspecialchars($userData['first_name']) ?>">
+                                    <input type="text" name="first_name" class="form-control" value="<?= htmlspecialchars($userData['first_name']) ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Last Name</label>
-                                    <input type="text" name="last_name" class="form-control" value="<?= htmlspecialchars($userData['last_name']) ?>">
+                                    <input type="text" name="last_name" class="form-control" value="<?= htmlspecialchars($userData['last_name']) ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Email</label>
-                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($userData['email']) ?>">
+                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($userData['email']) ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Phone Number</label>
@@ -95,10 +125,10 @@ if (!$userData) {
                                 <div class="col-md-6">
                                     <label class="form-label">Property Type</label>
                                     <select name="property_type" class="form-select">
-                                        <option value="Apartment" <?= $userData['property_type'] == 'Apartment' ? 'selected' : '' ?>>Apartment</option>
-                                        <option value="House" <?= $userData['property_type'] == 'House' ? 'selected' : '' ?>>House</option>
-                                        <option value="Villa" <?= $userData['property_type'] == 'Villa' ? 'selected' : '' ?>>Villa</option>
-                                        <option value="Cabin" <?= $userData['property_type'] == 'Cabin' ? 'selected' : '' ?>>Cabin</option>
+                                        <option value="teaching" <?= $userData['property_type'] == 'teaching' ? 'selected' : '' ?>>Teaching</option>
+                                        <option value="farming" <?= $userData['property_type'] == 'farming' ? 'selected' : '' ?>>Farming</option>
+                                        <option value="cooking" <?= $userData['property_type'] == 'cooking' ? 'selected' : '' ?>>Cooking</option>
+                                        <option value="childcare" <?= $userData['property_type'] == 'childcare' ? 'selected' : '' ?>>Childcare</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -141,3 +171,10 @@ if (!$userData) {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+

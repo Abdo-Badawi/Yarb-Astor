@@ -1,24 +1,18 @@
 <?php
 session_start();
-// Check if user is logged in and is a host
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
 }
 
-// Include the ProfileController to handle the logic
 include_once '../Controllers/ProfileController.php';
 
-// Assuming user_id is stored in session
 $userId = $_SESSION['userID'];
 
-// Create an instance of ProfileController
 $profileController = new ProfileController();
 
-// Fetch user data
-$userData = $profileController->getUserData($userId);
+$userData = $profileController->viewHostProfile();
 
-// If no user data is found, display an error
 if (!$userData) {
     echo "Error: No user data found.";
     exit;
@@ -40,12 +34,50 @@ if (!$userData) {
 <body>
 <?php include 'navHost.php'; ?>
 
+<!-- Add this after the header section and before the main content -->
+<div class="container mt-4">
+    <?php 
+    // Check for success or error messages
+    $successMessage = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+    $errorMessage = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+    // Clear session messages after displaying
+    unset($_SESSION['success_message']);
+    unset($_SESSION['error_message']);
+    ?>
+</div>
+
 <!-- Profile Start -->
 <div class="container-fluid py-5">
     <div class="container py-5">
-        <div class="text-center mb-5">
+        <div class="text-center mb-4">
             <h1 class="mb-3">My Profile</h1>
             <h6 style="color:#757575" class="mb-0">Manage your personal information and cultural exchange preferences</h6>
+        </div>
+        
+        <!-- Success and Error Messages positioned right after the subtitle -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8 mb-4">
+                <?php if ($successMessage): ?>
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-2" style="font-size: 1.25rem;"></i>
+                            <strong><?= htmlspecialchars($successMessage) ?></strong>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($errorMessage): ?>
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle me-2" style="font-size: 1.25rem;"></i>
+                            <strong><?= htmlspecialchars($errorMessage) ?></strong>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
 
         <div class="row">
@@ -144,7 +176,16 @@ if (!$userData) {
                             </div>
                         </div>
                         <div class="text-end mt-4">
-                            <button class="btn btn-primary" onclick="window.location.href='edit_profile.php'">Edit Profile</button>
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="messages.php" class="btn btn-info">Messages</a>
+                                <a href="edit_profile.php" class="btn btn-primary">Edit Profile</a>
+
+                                <form method="post" action="../Common/logout.php" style="text-align: right; margin-top: 0;">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -162,4 +203,8 @@ if (!$userData) {
 <script src="../js/main.js"></script>
 </body>
 </html>
+
+
+
+
 

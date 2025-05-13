@@ -1,30 +1,22 @@
 <?php
+require_once '../Controllers/OpportunityController.php';
 session_start();
-// Check if user is logged in and is a traveler
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
     header("Location: ../Common/login.php");
     exit;
 }
 
-// Add a session token for additional security
 if (!isset($_SESSION['auth_token'])) {
     $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
-
-require_once '../Controllers/OpportunityController.php';
-
 $travelerID = $_SESSION['userID'];
 
-// Create opportunity controller
 $opportunityController = new OpportunityController();
 
-// Get active opportunities
-$activeOpportunities = $opportunityController->getActiveOpportunities();
+$activeOpportunities = $opportunityController->getActiveOpp();
 
-// Get opportunities the traveler has applied to
-$appliedOpportunities = $opportunityController->getOpportunitiesByTravelerID($travelerID);
+$appliedOpportunities = $opportunityController->getOppByTravelerID($travelerID);
 
-// Create a lookup array of applied opportunity IDs for easy checking
 $appliedOpportunityIds = [];
 foreach ($appliedOpportunities as $appliedOpp) {
     $appliedOpportunityIds[$appliedOpp['opportunity_id']] = $appliedOpp['status'];
