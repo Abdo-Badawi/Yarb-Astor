@@ -1,6 +1,5 @@
 <?php
 session_start();
-require_once '../Controllers/SearchController.php';
 require_once '../Controllers/OpportunityController.php';
 
 // Check if user is logged in and is a traveler
@@ -12,7 +11,6 @@ if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
 $travelerID = $_SESSION['userID'];
 
 // Create controllers
-$searchController = new SearchController();
 $opportunityController = new OpportunityController();
 
 // Initialize filters array
@@ -47,10 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get search results
-$searchResults = $searchController->searchOpportunities($filters);
+$searchResults = $opportunityController->searchOpportunities($filters);
 
 // Get opportunities the traveler has applied to
-$appliedOpportunities = $opportunityController->getOpportunitiesByTravelerID($travelerID);
+$appliedOpportunities = $opportunityController->getOppByTravelerID($travelerID);
 
 // Create a lookup array of applied opportunity IDs for easy checking
 $appliedOpportunityIds = [];
@@ -59,8 +57,8 @@ foreach ($appliedOpportunities as $appliedOpp) {
 }
 
 // Get available categories and locations for filter dropdowns
-$availableCategories = $searchController->getAvailableCategories();
-$availableLocations = $searchController->getAvailableLocations();
+$availableCategories = $opportunityController->getAvailableCategories();
+$availableLocations = $opportunityController->getAvailableLocations();
 ?>
 
 <!DOCTYPE html>
@@ -239,3 +237,6 @@ $availableLocations = $searchController->getAvailableLocations();
     <script src="../js/main.js"></script>
 </body>
 </html> 
+
+
+

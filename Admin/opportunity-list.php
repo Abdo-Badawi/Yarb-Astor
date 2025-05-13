@@ -7,6 +7,10 @@
     // Call the function to get all opportunities
     $opportunities = $controller->getAllOpportunities();  // This should return an array of opportunities
 
+    // Check if opportunities is null or empty
+    if (!$opportunities) {
+        $opportunities = []; // Initialize as empty array to avoid errors in the foreach loop
+    }
 ?>
 
 <!DOCTYPE html>
@@ -213,7 +217,14 @@
                                     <div class="col-xl-6 col-md-6">
                                         <div class="opportunity-card">
                                             <div class="opportunity-header">
-                                                <img src="<?= isset($opportunity['opportunity_photo']) ? htmlspecialchars($opportunity['opportunity_photo']) : 'assets/images/default-opportunity.jpg' ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px;">
+                                                <?php 
+                                                // Check if opportunity_photo exists and is not empty
+                                                $photoPath = '../uploads/opportunities/';
+                                                $photoUrl = isset($opportunity['opportunity_photo']) && !empty($opportunity['opportunity_photo']) 
+                                                    ? $photoPath . htmlspecialchars($opportunity['opportunity_photo']) 
+                                                    : 'assets/images/default-opportunity.jpg';
+                                                ?>
+                                                <img src="<?= $photoUrl ?>" alt="Opportunity Image" class="img-fluid rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
                                                 <h6 class="opportunity-title"><?= htmlspecialchars($opportunity['title']) ?></h6>
                                                 <span class="badge badge-success"><?= ucfirst(htmlspecialchars($opportunity['status'])) ?></span>
                                             </div>
@@ -281,27 +292,27 @@
             const workType = document.getElementById('filterWorkType').value;
             const status = document.getElementById('filterStatus').value;
             const cards = document.querySelectorAll('.opportunity-card');
-
+            
             cards.forEach(card => {
                 const title = card.querySelector('.opportunity-title').textContent.toLowerCase();
                 const work = card.querySelector('.detail-value').textContent.toLowerCase();
                 const desc = card.querySelector('.opportunity-description').textContent.toLowerCase();
                 const statusText = card.querySelector('.badge').textContent.toLowerCase();
-
+                
                 let showCard = true;
-
+                
                 if (searchTerm && !(title.includes(searchTerm) || work.includes(searchTerm) || desc.includes(searchTerm) || statusText.includes(searchTerm))) {
                     showCard = false;
                 }
-
+                
                 if (workType && !work.includes(workType)) {
                     showCard = false;
                 }
-
+                
                 if (status && !statusText.includes(status)) {
                     showCard = false;
                 }
-
+                
                 card.closest('.col-xl-6').style.display = showCard ? 'block' : 'none';
             });
         }
@@ -339,3 +350,6 @@
     </script>
 </body>
 </html>
+
+
+

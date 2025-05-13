@@ -9,10 +9,19 @@ class OpportunityController {
         return $activeOpportunities;
     }
 
-    function getOppByTravelerID($travelerID){
-        $opportunity = new Opportunity();
-        $appliedOpportunities = $opportunity->getOpportunitiesByTravelerID($travelerID);
-        return $appliedOpportunities;
+    public function getOppByTravelerID(int $travelerID): array {
+        try {
+            $opportunity = new Opportunity();
+            $applications = $opportunity->getOpportunitiesByTravelerID($travelerID);
+            
+            // Debug information
+            error_log("Retrieved " . count($applications) . " applications for traveler ID $travelerID");
+            
+            return $applications;
+        } catch (Exception $e) {
+            error_log("Error getting opportunities by traveler ID: " . $e->getMessage());
+            return [];
+        }
     }
 
     function getOppById($opportunityId){
@@ -74,12 +83,6 @@ class OpportunityController {
         return $opportunity->getApplicationsByOpportunityId($opportunityId);
     }
 
-    /**
-     * Create a new opportunity
-     * 
-     * @param array $data Opportunity data
-     * @return bool True if creation was successful, false otherwise
-     */
     public function createOpportunity(array $data): bool {
         try {
             // Create a new Opportunity model
@@ -107,12 +110,6 @@ class OpportunityController {
         }
     }
 
-    /**
-     * Save opportunity to database
-     * 
-     * @param Opportunity $opportunity The opportunity object
-     * @return bool True if save was successful, false otherwise
-     */
     public function saveOpportunityToDB($opportunity): bool {
         try {
             $model = new Opportunity();
@@ -122,6 +119,59 @@ class OpportunityController {
             return false;
         }
     }
+
+    public function getOpportunityWithHostById(int $opportunityId): ?array {
+        try {
+            $opportunity = new Opportunity();
+            $data = $opportunity->getOpportunityWithHostById($opportunityId);
+            
+            // Debug information
+            if ($data) {
+                error_log("Retrieved opportunity with host data for ID $opportunityId");
+            } else {
+                error_log("No data found for opportunity ID $opportunityId");
+            }
+            
+            return $data;
+        } catch (Exception $e) {
+            error_log("Error getting opportunity with host by ID: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function searchOpportunities(array $filters = []): array {
+        try {
+            $opportunity = new Opportunity();
+            return $opportunity->searchOpportunities($filters);
+        } catch (Exception $e) {
+            error_log("Error searching opportunities: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getAvailableCategories(): array {
+        try {
+            $opportunity = new Opportunity();
+            return $opportunity->getAvailableCategories();
+        } catch (Exception $e) {
+            error_log("Error getting available categories: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getAvailableLocations(): array {
+        try {
+            $opportunity = new Opportunity();
+            return $opportunity->getAvailableLocations();
+        } catch (Exception $e) {
+            error_log("Error getting available locations: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?>
+
+
+
+
 

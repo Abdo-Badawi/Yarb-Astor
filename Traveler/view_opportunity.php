@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../Controllers/OpportunityController.php';
-require_once '../Controllers/HostController.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['userID'])) {
@@ -18,12 +17,11 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $opportunityId = (int)$_GET['id'];
 $travelerID = $_SESSION['userID'];
 
-// Create controllers
+// Create opportunity controller
 $opportunityController = new OpportunityController();
-// $hostController = new HostController();
 
-// Get opportunity details
-$opportunityData = $opportunityController->getOppById($opportunityId);
+// Get opportunity with host details
+$opportunityData = $opportunityController->getOpportunityWithHostById($opportunityId);
 
 // Check if opportunity exists
 if (!$opportunityData) {
@@ -33,9 +31,6 @@ if (!$opportunityData) {
 
 // Check if traveler has already applied
 $hasApplied = $opportunityController->checkApplied($travelerID, $opportunityId);
-
-// Get host details
-$hostData = $hostController->getHostById($opportunityData['host_id']);
 ?>
 
 <!DOCTYPE html>
@@ -77,12 +72,15 @@ $hostData = $hostController->getHostById($opportunityData['host_id']);
                         
                         <!-- Host Information -->
                         <div class="d-flex align-items-center mb-4 p-3 bg-light rounded">
-                            <img src="<?= !empty($hostData['profile_photo']) ? '../uploads/' . htmlspecialchars($hostData['profile_photo']) : '../img/default-profile.jpg' ?>" 
+                            <img src="../Controllers/GetProfileImg.php?user_id=<?= $opportunityData['host_id'] ?>" 
                                  class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="Host">
                             <div>
-                                <h5 class="mb-0">Hosted by <?= htmlspecialchars($hostData['first_name'] . ' ' . $hostData['last_name']) ?></h5>
+                                <h5 class="mb-0">Hosted by <?= htmlspecialchars($opportunityData['first_name'] . ' ' . $opportunityData['last_name']) ?></h5>
                                 <p class="text-muted mb-0">
                                     <i class="fa fa-map-marker-alt me-1"></i> <?= htmlspecialchars($opportunityData['location']) ?>
+                                    <?php if (!empty($opportunityData['property_type'])): ?>
+                                        <span class="ms-2"><i class="fa fa-home me-1"></i> <?= htmlspecialchars($opportunityData['property_type']) ?></span>
+                                    <?php endif; ?>
                                 </p>
                                 <a href="view_host.php?id=<?= $opportunityData['host_id'] ?>" class="btn btn-sm btn-outline-primary mt-2">
                                     View Host Profile
@@ -121,6 +119,40 @@ $hostData = $hostController->getHostById($opportunityData['host_id']);
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2 mb-3">Description</h5>
                             <p><?= nl2br(htmlspecialchars($opportunityData['description'])) ?></p>
+                        </div>
+                        
+                        <!-- Additional Host Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">About the Host</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($opportunityData['about'])): ?>
+                                    <p><?= nl2br(htmlspecialchars($opportunityData['about'])) ?></p>
+                                <?php else: ?>
+                                    <p>No additional information provided by the host.</p>
+                                <?php endif; ?>
+                                
+                                <div class="row mt-3">
+                                    <?php if (!empty($opportunityData['preferred_language'])): ?>
+                                        <div class="col-md-6 mb-2">
+                                            <i class="fa fa-language me-2"></i> Speaks: <?= htmlspecialchars($opportunityData['preferred_language']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($opportunityData['hosting_since'])): ?>
+                                        <div class="col-md-6 mb-2">
+                                            <i class="fa fa-calendar me-2"></i> Hosting since: <?= htmlspecialchars($opportunityData['hosting_since']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($opportunityData['host_location'])): ?>
+                                        <div class="col-md-6 mb-2">
+                                            <i class="fa fa-map-pin me-2"></i> Location: <?= htmlspecialchars($opportunityData['host_location']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Action Buttons -->
@@ -162,9 +194,6 @@ $hostData = $hostController->getHostById($opportunityData['host_id']);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-
 
 
 

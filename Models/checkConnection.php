@@ -11,7 +11,7 @@ $userId = $_SESSION['userID']; // Or replace with actual user id logic
 $profileController = new ProfileController();
 
 // Fetch user data
-$userData = $profileController->getUserData($userId);
+$userData = $profileController->viewHostProfile();
 
 // If no user data is found, display an error
 if (!$userData) {

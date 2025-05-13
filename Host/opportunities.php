@@ -263,14 +263,14 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
     document.getElementById("applyFilters").addEventListener("click", function () {
         const selectedStatus = document.getElementById("statusFilter").value;
         const selectedCategory = document.getElementById("categoryFilter").value;
-
+        
         // Filter the opportunities based on selected status and category
         filteredOpportunities = opportunities.filter(opp => {
             const statusMatches = (selectedStatus === "Status" || opp.status === selectedStatus);
             const categoryMatches = (selectedCategory === "Category" || opp.category.toLowerCase() === selectedCategory.toLowerCase());
             return statusMatches && categoryMatches;
         });
-
+        
         currentPage = 1;  // Reset to first page when filters are applied
         displayOpportunities();
     });
@@ -438,6 +438,7 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
 
 </body>
 </html>
+
 
 
 

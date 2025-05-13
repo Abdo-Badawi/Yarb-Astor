@@ -274,14 +274,24 @@ class Opportunity {
     }
 
     // Function to get opportunities that a traveler has applied to
+    /**
+     * Get opportunities applied by a traveler with details
+     * 
+     * @param int $travelerID The traveler ID
+     * @return array Array of opportunities
+     */
     public function getOpportunitiesByTravelerID(int $travelerID): array {
-        $sql = "SELECT o.*, a.status as status, a.applied_date
-                FROM opportunity o
-                JOIN applications a ON o.opportunity_id = a.opportunity_id
+        $sql = "SELECT a.*, 
+                o.title, o.description, o.location, o.start_date, o.end_date, o.category, o.opportunity_photo, o.host_id,
+                h.first_name AS host_first_name, h.last_name AS host_last_name
+                FROM applications a
+                JOIN opportunity o ON a.opportunity_id = o.opportunity_id
+                JOIN users h ON o.host_id = h.user_id
                 WHERE a.traveler_id = ?
                 ORDER BY a.applied_date DESC";
 
         $params = [$travelerID];
+
         $this->db->openConnection();
         $result = $this->db->selectPrepared($sql, "i", $params);
         $this->db->closeConnection();
@@ -596,5 +606,140 @@ class Opportunity {
     
         // End the card layout
         echo "</div>";
+    }
+
+    /**
+     * Get opportunity with host details by ID
+     * 
+     * @param int $opportunityId The opportunity ID
+     * @return array|null Opportunity with host data or null if not found
+     */
+    public function getOpportunityWithHostById(int $opportunityId): ?array {
+        $sql = "SELECT o.*, 
+                h.property_type, h.preferred_language, h.about, h.hosting_since,
+                u.first_name, u.last_name, u.email, u.profile_picture, u.location as host_location
+                FROM opportunity o
+                JOIN hosts h ON o.host_id = h.host_id
+                JOIN users u ON h.host_id = u.user_id
+                WHERE o.opportunity_id = ?";
+
+        $params = [$opportunityId];
+
+        $this->db->openConnection();
+        $result = $this->db->selectPrepared($sql, "i", $params);
+        $this->db->closeConnection();
+
+        return $result[0] ?? null;
+    }
+
+    /**
+     * Search for opportunities based on various filters
+     * 
+     * @param array $filters Array of filter parameters
+     * @return array List of matching opportunities
+     */
+    public function searchOpportunities(array $filters = []): array {
+        $this->db->openConnection();
+        
+        // Start building the query
+        $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture 
+                FROM opportunity o 
+                JOIN users u ON o.host_id = u.user_id 
+                WHERE o.status = 'open'";
+        
+        $params = [];
+        $types = "";
+        
+        // Add location filter
+        if (!empty($filters['location'])) {
+            $sql .= " AND o.location LIKE ?";
+            $params[] = "%" . $filters['location'] . "%";
+            $types .= "s";
+        }
+        
+        // Add category filter
+        if (!empty($filters['category'])) {
+            $sql .= " AND o.category = ?";
+            $params[] = $filters['category'];
+            $types .= "s";
+        }
+        
+        // Add start date filter
+        if (!empty($filters['start_date'])) {
+            $sql .= " AND o.start_date >= ?";
+            $params[] = $filters['start_date'];
+            $types .= "s";
+        }
+        
+        // Add end date filter
+        if (!empty($filters['end_date'])) {
+            $sql .= " AND o.end_date <= ?";
+            $params[] = $filters['end_date'];
+            $types .= "s";
+        }
+        
+        // Add accommodation type filter if it exists
+        if (!empty($filters['accommodation_type'])) {
+            $sql .= " AND o.accommodation_type = ?";
+            $params[] = $filters['accommodation_type'];
+            $types .= "s";
+        }
+        
+        // Add duration type filter
+        if (!empty($filters['duration_type'])) {
+            switch ($filters['duration_type']) {
+                case 'short':
+                    $sql .= " AND DATEDIFF(o.end_date, o.start_date) <= 14";
+                    break;
+                case 'medium':
+                    $sql .= " AND DATEDIFF(o.end_date, o.start_date) > 14 AND DATEDIFF(o.end_date, o.start_date) <= 30";
+                    break;
+                case 'long':
+                    $sql .= " AND DATEDIFF(o.end_date, o.start_date) > 30";
+                    break;
+            }
+        }
+        
+        // Add order by clause
+        $sql .= " ORDER BY o.created_at DESC";
+        
+        // Execute the query
+        $result = empty($params) ? $this->db->select($sql) : $this->db->selectPrepared($sql, $types, $params);
+        
+        $this->db->closeConnection();
+        
+        return $result ?: [];
+    }
+
+    /**
+     * Get all available locations for filtering
+     * 
+     * @return array List of unique locations
+     */
+    public function getAvailableLocations(): array {
+        $this->db->openConnection();
+        
+        $sql = "SELECT DISTINCT location FROM opportunity WHERE status = 'open' ORDER BY location";
+        $result = $this->db->select($sql);
+        
+        $this->db->closeConnection();
+        
+        return $result ?: [];
+    }
+
+    /**
+     * Get all available categories for filtering
+     * 
+     * @return array List of unique categories
+     */
+    public function getAvailableCategories(): array {
+        $this->db->openConnection();
+        
+        $sql = "SELECT DISTINCT category FROM opportunity WHERE status = 'open' ORDER BY category";
+        $result = $this->db->select($sql);
+        
+        $this->db->closeConnection();
+        
+        return $result ?: [];
     }
 }
