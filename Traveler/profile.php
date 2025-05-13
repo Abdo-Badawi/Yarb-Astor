@@ -121,7 +121,7 @@ if (!$userData) {
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">National ID</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['national_id']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['national_id']) ? htmlspecialchars($userData['national_id']) : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Bio</label>
@@ -129,14 +129,15 @@ if (!$userData) {
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Preferred Languages</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['preferred_language']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['preferred_language']) ? htmlspecialchars($userData['preferred_language']) : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Skills</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['skill']) ?>" readonly>
-                                        </div>                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" value="<?= isset($userData['skill']) ? htmlspecialchars($userData['skill']) : '' ?>" readonly>
+                                        </div>
+                                        <div class="col-md-6">
                                             <label class="form-label">Languages Spoken</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['language_spoken']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['language_spoken']) ? htmlspecialchars($userData['language_spoken']) : '' ?>" readonly>
                                         </div>
                                     </div>
                                 </form>

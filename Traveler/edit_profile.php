@@ -80,23 +80,23 @@ if (!$userData) {
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Country</label>
-                                    <input type="text" name="location" class="form-control" value="<?= htmlspecialchars($userData['location']) ?>">
+                                    <input type="text" name="location" class="form-control" value="<?= isset($userData['location']) ? htmlspecialchars($userData['location']) : '' ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Skills</label>
-                                    <input type="text" name="skill" class="form-control" value="<?= htmlspecialchars($userData['skill']) ?>">
+                                    <input type="text" name="skill" class="form-control" value="<?= isset($userData['skill']) ? htmlspecialchars($userData['skill']) : '' ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Languages Spoken</label>
-                                    <input type="text" name="language_spoken" class="form-control" value="<?= htmlspecialchars($userData['language_spoken']) ?>">
+                                    <input type="text" name="language_spoken" class="form-control" value="<?= isset($userData['language_spoken']) ? htmlspecialchars($userData['language_spoken']) : '' ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Preferred Languages</label>
-                                    <input type="text" name="preferred_language" class="form-control" value="<?= htmlspecialchars($userData['preferred_language']) ?>">
+                                    <input type="text" name="preferred_language" class="form-control" value="<?= isset($userData['preferred_language']) ? htmlspecialchars($userData['preferred_language']) : '' ?>">
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Bio</label>
-                                    <textarea name="bio" class="form-control" rows="4"><?= htmlspecialchars($userData['bio']) ?></textarea>
+                                    <textarea name="bio" class="form-control" rows="4"><?= isset($userData['bio']) ? htmlspecialchars($userData['bio']) : '' ?></textarea>
                                 </div>
                             </div>
 

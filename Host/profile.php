@@ -144,8 +144,20 @@ if (!$userData) {
                                             <input type="text" class="form-control" value="<?= htmlspecialchars($userData['phone_number']) ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Country</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['location']) ?>" readonly>
+                                            <label class="form-label">Location</label>
+                                            <input type="text" class="form-control" value="<?= isset($userData['location']) ? htmlspecialchars($userData['location']) : '' ?>" readonly>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Status</label>
+                                            <input type="text" class="form-control" value="<?= isset($userData['status']) ? htmlspecialchars($userData['status']) : '' ?>" readonly>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Rating</label>
+                                            <input type="text" class="form-control" value="<?= isset($userData['rate']) ? htmlspecialchars($userData['rate']) : 'No ratings yet' ?>" readonly>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Joined Date</label>
+                                            <input type="text" class="form-control" value="<?= isset($userData['joined_date']) ? htmlspecialchars($userData['joined_date']) : '' ?>" readonly>
                                         </div>
                                     </div>
                                 </form>
@@ -157,19 +169,19 @@ if (!$userData) {
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">National ID</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['national_id']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['national_id']) ? htmlspecialchars($userData['national_id']) : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Bio</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['bio']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['bio']) ? htmlspecialchars($userData['bio']) : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Preferred Languages</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['preferred_language']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['preferred_language']) ? htmlspecialchars($userData['preferred_language']) : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Property Type</label>
-                                            <input type="text" class="form-control" value="<?= htmlspecialchars($userData['property_type']) ?>" readonly>
+                                            <input type="text" class="form-control" value="<?= isset($userData['property_type']) ? htmlspecialchars($userData['property_type']) : '' ?>" readonly>
                                         </div>
                                     </div>
                                 </form>

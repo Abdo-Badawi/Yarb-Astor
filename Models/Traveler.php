@@ -20,12 +20,12 @@ class Traveler extends User {
             return null;
         }
         
-        // Query to get traveler data from both users and travelers tables
+        // Updated query to match the actual columns in the traveler table
         $query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, 
                  u.profile_picture, u.created_at, u.last_login, u.user_type,
-                 t.nationality, t.language_spoken, t.skill, t.bio, t.status
+                 t.language_spoken, t.skill, t.bio, t.status, t.rate, t.location, t.preferred_language
                  FROM users u 
-                 LEFT JOIN travelers t ON u.user_id = t.traveler_id
+                 LEFT JOIN traveler t ON u.user_id = t.traveler_id
                  WHERE u.user_id = ? AND u.user_type = 'traveler'";
         $params = [$travelerId];
         
@@ -46,12 +46,12 @@ class Traveler extends User {
             return [];
         }
         
-        // Query to get all travelers
+        // Updated query to match the actual columns in the traveler table
         $query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, 
                  u.profile_picture, u.created_at, u.last_login, u.user_type,
-                 t.nationality, t.language_spoken, t.skill, t.bio, t.status
+                 t.language_spoken, t.skill, t.bio, t.status, t.rate, t.location, t.preferred_language
                  FROM users u 
-                 LEFT JOIN travelers t ON u.user_id = t.traveler_id
+                 LEFT JOIN traveler t ON u.user_id = t.traveler_id
                  WHERE u.user_type = 'traveler'
                  ORDER BY u.last_name, u.first_name";
         
@@ -190,7 +190,7 @@ class Traveler extends User {
                  u.profile_picture, u.created_at, u.last_login, u.user_type,
                  t.nationality, t.language_spoken, t.skill, t.bio, t.status
                  FROM users u 
-                 LEFT JOIN travelers t ON u.user_id = t.traveler_id
+                 LEFT JOIN traveler t ON u.user_id = t.traveler_id
                  WHERE u.user_type = 'traveler'";
         
         // Add WHERE conditions if any
@@ -222,12 +222,12 @@ class Traveler extends User {
             return false;
         }
         
-        // Query to get traveler data from both users and travelers tables
+        // Updated query to match the actual columns in the traveler table
         $query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, 
                  u.profile_picture, u.created_at, u.last_login, u.user_type,
-                 t.nationality, t.language_spoken, t.skill, t.bio, t.status
+                 t.language_spoken, t.skill, t.bio, t.status, t.rate, t.location
                  FROM users u 
-                 LEFT JOIN travelers t ON u.user_id = t.traveler_id
+                 LEFT JOIN traveler t ON u.user_id = t.traveler_id
                  WHERE u.user_id = ? AND u.user_type = 'traveler'";
         $params = [$travelerId];
         

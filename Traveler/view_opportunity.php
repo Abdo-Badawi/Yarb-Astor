@@ -20,10 +20,10 @@ $travelerID = $_SESSION['userID'];
 
 // Create controllers
 $opportunityController = new OpportunityController();
-// $hostController = new HostController();
+$hostController = new HostController();
 
 // Get opportunity details
-$opportunityData = $opportunityController->getOppById($opportunityId);
+$opportunityData = $opportunityController->getOpportunityById($opportunityId);
 
 // Check if opportunity exists
 if (!$opportunityData) {
@@ -32,7 +32,7 @@ if (!$opportunityData) {
 }
 
 // Check if traveler has already applied
-$hasApplied = $opportunityController->checkApplied($travelerID, $opportunityId);
+$hasApplied = $opportunityController->checkIfTravelerApplied($travelerID, $opportunityId);
 
 // Get host details
 $hostData = $hostController->getHostById($opportunityData['host_id']);

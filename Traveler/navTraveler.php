@@ -10,11 +10,13 @@
             <a href="index.php" class="nav-item nav-link">Home</a>
             <a href="search.php" class="nav-item nav-link">Find Exchange</a>
             <a href="applications.php" class="nav-item nav-link">My Applications</a>
+            <a href="messages.php" class="nav-item nav-link"><i class="fas fa-envelope me-1"></i>Messages</a>
             <a href="fees.php" class="nav-item nav-link">Fees</a>
             <a href="profile.php" class="nav-item nav-link">Profile</a>
             <a href="../Common/logout.php" class="nav-item nav-link nav-contact bg-primary text-white px-5 ms-lg-5">Logout <i class="bi bi-arrow-right"></i></a>
         </div>
     </div>
 </nav>
+
 
 

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../Controllers/SupportController.php';
+require_once '../Controllers/SupportContent.php';
 
 // Initialize the controller
 $controller = new SupportController();
