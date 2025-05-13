@@ -13,9 +13,9 @@ $travelerID = $_SESSION['userID'];
 
 $opportunityController = new OpportunityController();
 
-$activeOpportunities = $opportunityController->getActiveOpp();
+$activeOpportunities = $opportunityController->getActiveOpportunities();
 
-$appliedOpportunities = $opportunityController->getOppByTravelerID($travelerID);
+$appliedOpportunities = $opportunityController->getOpportunitiesByTravelerID($travelerID);
 
 $appliedOpportunityIds = [];
 foreach ($appliedOpportunities as $appliedOpp) {

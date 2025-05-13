@@ -1,13 +1,20 @@
 <?php
 session_start();
-require_once '../Controllers/HostController.php';
 require_once '../Controllers/MessageController.php';
+require_once '../Controllers/HostController.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['userID'])) {
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
     header("Location: ../Common/login.php");
     exit;
 }
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+}
+
+$travelerId = $_SESSION['userID'];
 
 // Check if host ID is provided
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -16,27 +23,25 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $hostId = (int)$_GET['id'];
-$travelerId = $_SESSION['userID'];
 
 // Create controllers
-$hostController = new HostController();
 $messageController = new MessageController();
+$hostController = new HostController();
 
-// Get host details
+// Get host data
 $hostData = $hostController->getHostById($hostId);
 
-// Check if host exists
 if (!$hostData) {
     header("Location: exchange.php");
     exit;
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['token']) && $_POST['token'] === $_SESSION['auth_token']) {
     $messageData = [
         'sender_id' => $travelerId,
         'receiver_id' => $hostId,
-        'message' => $_POST['message'],
+        'content' => $_POST['message'],
         'status' => 'delivered',
         'is_read' => 0,
         'sender_type' => 'traveler',
@@ -206,6 +211,7 @@ try {
                                     <label for="message" class="form-label">Your Message</label>
                                     <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
                                 </div>
+                                <input type="hidden" name="token" value="<?= $_SESSION['auth_token'] ?>">
                                 <div class="d-flex justify-content-between">
                                     <a href="exchange.php" class="btn btn-outline-secondary">Back to Exchanges</a>
                                     <button type="submit" class="btn btn-primary">
@@ -247,4 +253,5 @@ try {
         });
     </script>
 </body>
+
 

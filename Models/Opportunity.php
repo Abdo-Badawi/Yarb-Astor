@@ -14,13 +14,17 @@ class Opportunity {
     private string $hostId = '';                  // VARCHAR(255) referencing users(user_id)
     private string $status = 'open';              // ENUM('open', 'closed', 'cancelled')
     private ?\DateTime $createdAt = null;         // TIMESTAMP
-    private string $requirements = '';            // TEXT (could be JSON or comma-separated)
+    private string $requirements = '';            // Requirements for the opportunity
     private $db;
 
-
-    public function _construct() {
-        $this->db = new Database();
-        $this->createdAt = new \DateTime();
+    public function __construct() {
+        // Initialize the database connection with the fully qualified name
+        $this->db = new \Database();
+        
+        // Verify the database connection was created
+        if (!$this->db) {
+            error_log("Failed to create Database instance in Opportunity constructor");
+        }
     }
 
     public function initWithData(array $data): Opportunity {
@@ -217,45 +221,36 @@ class Opportunity {
     }
 
     // Function to apply for an opportunity
-    public function applyForOpportunity(array $applicationData): bool {
-        $sql = "INSERT INTO applications (traveler_id, opportunity_id, message, availability, experience, status, applied_date)
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-        $params = [
-            $applicationData['traveler_id'],
-            $applicationData['opportunity_id'],
-            $applicationData['message'],
-            $applicationData['availability'],
-            $applicationData['experience'],
-            $applicationData['status'],
-            $applicationData['applied_date']
-        ];
-
-        $this->db->openConnection();
-        $result = $this->db->insert($sql, "iisssss", $params);
-        $this->db->closeConnection();
-
-        return $result;
+   
+    /**
+     * Ensure database connection is initialized
+     */
+    private function ensureDatabaseConnection() {
+        if ($this->db === null) {
+            $this->db = new \Database();
+            if (!$this->db) {
+                error_log("Failed to create Database instance in ensureDatabaseConnection");
+            }
+        }
     }
 
-    // Function to get opportunity by ID
-    public function getOpportunityById(int $opportunityId): ?array {
-        $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture
-                FROM opportunity o
-                JOIN users u ON o.host_id = u.user_id
-                WHERE o.opportunity_id = ?";
+    /**
+     * Get opportunity by ID
+     * 
+     * @param int $opportunityId The opportunity ID
+     * @return array|null The opportunity data or null if not found
+     */
+    
 
-        $params = [$opportunityId];
-
-        $this->db->openConnection();
-        $result = $this->db->selectPrepared($sql, "i", $params);
-        $this->db->closeConnection();
-
-        return $result[0] ?? null;
-    }
-
-    // Function to get active opportunities
+    /**
+     * Get all active opportunities
+     * 
+     * @return array Array of active opportunities
+     */
     public function getActiveOpportunities(): array {
+        // Ensure database connection is initialized
+        $this->ensureDatabaseConnection();
+        
         $currentDate = date('Y-m-d');
 
         $sql = "SELECT o.*, u.first_name, u.last_name
@@ -267,23 +262,43 @@ class Opportunity {
 
         $params = [$currentDate];
 
-        $this->db->openConnection();
+        // Try to open the connection
+        if (!$this->db->openConnection()) {
+            error_log("Failed to open database connection in getActiveOpportunities");
+            return [];
+        }
+        
         $result = $this->db->selectPrepared($sql, "s", $params);
         $this->db->closeConnection();
 
         return $result ?: [];
     }
+    
 
-    // Function to get opportunities that a traveler has applied to
+    /**
+     * Get opportunities by traveler ID (opportunities the traveler has applied to)
+     * 
+     * @param int $travelerID The traveler ID
+     * @return array Array of opportunities
+     */
     public function getOpportunitiesByTravelerID(int $travelerID): array {
-        $sql = "SELECT o.*, a.status as status, a.applied_date
+        // Ensure database connection is initialized
+        $this->ensureDatabaseConnection();
+        
+        $sql = "SELECT o.*, a.status as application_status, a.applied_date
                 FROM opportunity o
                 JOIN applications a ON o.opportunity_id = a.opportunity_id
                 WHERE a.traveler_id = ?
                 ORDER BY a.applied_date DESC";
 
         $params = [$travelerID];
-        $this->db->openConnection();
+
+        // Try to open the connection
+        if (!$this->db->openConnection()) {
+            error_log("Failed to open database connection in getOpportunitiesByTravelerID");
+            return [];
+        }
+        
         $result = $this->db->selectPrepared($sql, "i", $params);
         $this->db->closeConnection();
 
@@ -322,11 +337,21 @@ class Opportunity {
 
     // Function to get opportunities by host ID
     public function getOpportunitiesByHostID(int $hostID): array {
+        // Ensure database connection is initialized
+        $this->ensureDatabaseConnection();
+        
+        // Debug log
+        error_log("Database object in getOpportunitiesByHostID: " . ($this->db ? "exists" : "is null"));
+        
         $sql = "SELECT * FROM opportunity WHERE host_id = ? ORDER BY created_at DESC";
-
         $params = [$hostID];
 
-        $this->db->openConnection();
+        // Try to open the connection
+        if (!$this->db->openConnection()) {
+            error_log("Failed to open database connection in getOpportunitiesByHostID");
+            return [];
+        }
+        
         $result = $this->db->selectPrepared($sql, "i", $params);
         $this->db->closeConnection();
 
@@ -334,34 +359,74 @@ class Opportunity {
     }
 
     // Function to delete an opportunity
+    /**
+     * Delete an opportunity
+     * 
+     * @param int $opportunityId The opportunity ID to delete
+     * @return bool True if successful, false otherwise
+     */
     public function deleteOpportunity(int $opportunityId): bool {
-        // First, delete any applications associated with this opportunity
-        $sqlApplications = "DELETE FROM applications WHERE opportunity_id = ?";
-        
-        $this->db->openConnection();
-        $this->db->delete($sqlApplications, "i", [$opportunityId]);
-        
-        // Then delete the opportunity itself
-        $sql = "DELETE FROM opportunity WHERE opportunity_id = ?";
-        
-        $params = [$opportunityId];
-        $result = $this->db->delete($sql, "i", $params);
-        $this->db->closeConnection();
-        
-        return $result;
+        try {
+            error_log("Model: Attempting to delete opportunity ID: $opportunityId");
+            
+            // Open database connection
+            if (!$this->db->openConnection()) {
+                error_log("Model: Failed to open database connection for deleting opportunity ID: $opportunityId");
+                return false;
+            }
+            
+            // First, delete any applications associated with this opportunity
+            $sqlApplications = "DELETE FROM applications WHERE opportunity_id = ?";
+            
+            $appResult = $this->db->delete($sqlApplications, "i", [$opportunityId]);
+            error_log("Model: Deleted applications for opportunity ID: $opportunityId, result: " . ($appResult ? 'success' : 'failed'));
+            
+            // Then delete the opportunity itself
+            $sql = "DELETE FROM opportunity WHERE opportunity_id = ?";
+            
+            $params = [$opportunityId];
+            $result = $this->db->delete($sql, "i", $params);
+            
+            error_log("Model: Delete opportunity ID: $opportunityId, result: " . ($result ? 'success' : 'failed'));
+            
+            return $result;
+        } catch (\Exception $e) {
+            error_log("Model: Exception in deleteOpportunity: " . $e->getMessage());
+            return false;
+        } finally {
+            // Always close the connection
+            $this->db->closeConnection();
+        }
     }
 
     // Function to update opportunity status
+    /**
+     * Update the status of an opportunity
+     * 
+     * @param int $opportunityId The opportunity ID
+     * @param string $status The new status
+     * @return bool True if successful, false otherwise
+     */
     public function updateOpportunityStatus(int $opportunityId, string $status): bool {
-        $sql = "UPDATE opportunity SET status = ? WHERE opportunity_id = ?";
-
-        $params = [$status, $opportunityId];
-
-        $this->db->openConnection();
-        $result = $this->db->update($sql, "si", $params);
-        $this->db->closeConnection();
-
-        return $result;
+        try {
+            // Open database connection
+            if (!$this->db->openConnection()) {
+                return false;
+            }
+            
+            $sql = "UPDATE opportunity SET status = ? WHERE opportunity_id = ?";
+            $params = [$status, $opportunityId];
+            
+            $result = $this->db->update($sql, "si", $params);
+            
+            return $result;
+        } catch (\Exception $e) {
+            error_log("Exception in updateOpportunityStatus: " . $e->getMessage());
+            return false;
+        } finally {
+            // Always close the connection
+            $this->db->closeConnection();
+        }
     }
 
     // Function to update an opportunity
@@ -399,7 +464,17 @@ class Opportunity {
     }
 
     // Function to get all opportunities
+    /**
+     * Get all opportunities
+     * 
+     * @return array Array of all opportunities
+     */
     public function getAllOpportunities() {
+        // Ensure database connection is initialized
+        if ($this->db === null) {
+            $this->db = new \Database();
+        }
+        
         $this->db->openConnection();
         
         $query = "SELECT o.*, u.first_name, u.last_name, u.profile_picture 
@@ -526,7 +601,7 @@ class Opportunity {
                 error_log("Opportunity created successfully with ID: " . $result);
                 return true;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Exception in createOpportunity: " . $e->getMessage());
             $this->db->closeConnection();
             return false;
@@ -684,7 +759,8 @@ class Opportunity {
     public function getApplicationStatus(int $travelerId, int $opportunityId): ?string {
         $this->db->openConnection();
         
-        $query = "SELECT status FROM application 
+        // Fix the table name from "application" to "applications"
+        $query = "SELECT status FROM applications 
                  WHERE traveler_id = ? AND opportunity_id = ?";
         
         $result = $this->db->selectPrepared($query, "ii", [$travelerId, $opportunityId]);
@@ -705,22 +781,7 @@ class Opportunity {
      * @param string $status The new status
      * @return bool True if successful, false otherwise
      */
-    public function updateApplicationStatus(int $applicationId, string $status): bool {
-        // Validate status
-        if (!in_array($status, ['pending', 'accepted', 'rejected'])) {
-            return false;
-        }
-        
-        $this->db->openConnection();
-        
-        $query = "UPDATE application SET status = ? WHERE application_id = ?";
-        
-        $result = $this->db->update($query, "si", [$status, $applicationId]);
-        
-        $this->db->closeConnection();
-        
-        return $result;
-    }
+    
     
     /**
      * Get applications by traveler ID
@@ -773,47 +834,91 @@ class Opportunity {
     }
     
     /**
-     * Get active opportunities
+     * Get all active opportunities
      * 
      * @return array Array of active opportunities
      */
-    public function getActiveOpportunities(): array {
-        $this->db->openConnection();
-        
-        $query = "SELECT o.*, u.first_name, u.last_name, u.profile_picture 
-                 FROM opportunity o 
-                 JOIN users u ON o.host_id = u.user_id 
-                 WHERE o.status = 'open' 
-                 ORDER BY o.created_at DESC";
-        
-        $result = $this->db->select($query);
-        
-        $this->db->closeConnection();
-        
-        return $result ?: [];
-    }
+   
+
+    /**
+     * Get opportunities by traveler ID (opportunities the traveler has applied to)
+     * 
+     * @param int $travelerID The traveler ID
+     * @return array Array of opportunities
+     */
     
+
+    /**
+     * Get opportunity by ID
+     * 
+     * @param int $opportunityID The opportunity ID
+     * @return array|false Opportunity data or false if not found
+     */
+    public function getOpportunityById(int $opportunityID) {
+        // Ensure database connection is initialized
+        $this->ensureDatabaseConnection();
+        
+        // Fix the query to join with users table instead of host table
+        $sql = "SELECT o.*, u.first_name, u.last_name, u.profile_picture
+                FROM opportunity o
+                JOIN users u ON o.host_id = u.user_id
+                WHERE o.opportunity_id = ?";
+
+        $params = [$opportunityID];
+
+        // Try to open the connection
+        if (!$this->db->openConnection()) {
+            error_log("Failed to open database connection in getOpportunityById");
+            return false;
+        }
+        
+        $result = $this->db->selectPrepared($sql, "i", $params);
+        $this->db->closeConnection();
+
+        return $result && count($result) > 0 ? $result[0] : false;
+    }
+
     /**
      * Check if traveler has applied to an opportunity
      * 
-     * @param int $travelerId The traveler ID
-     * @param int $opportunityId The opportunity ID
+     * @param int $travelerID The traveler ID
+     * @param int $opportunityID The opportunity ID
      * @return bool True if applied, false otherwise
      */
-    public function checkIfTravelerApplied(int $travelerId, int $opportunityId): bool {
-        $this->db->openConnection();
+    
+    /**
+     * Apply for an opportunity
+     * 
+     * @param array $applicationData Application data
+     * @return bool Success status
+     */
+    public function applyForOpportunity(array $applicationData): bool {
+        // Ensure database connection is initialized
+        $this->ensureDatabaseConnection();
         
-        $query = "SELECT COUNT(*) as count FROM application 
-                 WHERE traveler_id = ? AND opportunity_id = ?";
+        // Fix the table name from "application" to "applications"
+        $sql = "INSERT INTO applications (traveler_id, opportunity_id, message, availability, experience, status, applied_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        $params = [
+            $applicationData['traveler_id'],
+            $applicationData['opportunity_id'],
+            $applicationData['message'],
+            $applicationData['availability'],
+            $applicationData['experience'],
+            $applicationData['status'],
+            $applicationData['applied_date']
+        ];
         
-        $result = $this->db->selectPrepared($query, "ii", [$travelerId, $opportunityId]);
-        
-        $this->db->closeConnection();
-        
-        if (is_array($result) && !empty($result)) {
-            return (int)$result[0]['count'] > 0;
+        // Try to open the connection
+        if (!$this->db->openConnection()) {
+            error_log("Failed to open database connection in applyForOpportunity");
+            return false;
         }
         
-        return false;
+        $result = $this->db->insert($sql, "iisssss", $params);
+        $this->db->closeConnection();
+        
+        return $result ? true : false;
     }
 }

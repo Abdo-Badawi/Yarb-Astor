@@ -23,6 +23,78 @@ class AuthController {
         header("Location: ../Common/login.php");
         exit();
     }
+
+    /**
+     * Register a new user
+     * 
+     * @param array $userData User registration data
+     * @return int|bool User ID on success, false on failure
+     */
+    public function register(array $userData) {
+        // Validate required fields
+        $requiredFields = ['first_name', 'last_name', 'email', 'password', 'user_type'];
+        foreach ($requiredFields as $field) {
+            if (empty($userData[$field])) {
+                error_log("Missing required field: $field");
+                return false;
+            }
+        }
+        
+        // Validate email format
+        if (!filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
+            error_log("Invalid email format: " . $userData['email']);
+            return false;
+        }
+        
+        // Create a new User model instance
+        $userModel = new User();
+        
+        // Call the register method on the model
+        $userId = $userModel->register($userData);
+        
+        if ($userId) {
+            // Start session if not already started
+            if (session_status() == PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            // Set session variables
+            $_SESSION['userID'] = $userId;
+            $_SESSION['userType'] = $userData['user_type'];
+            $_SESSION['email'] = $userData['email'];
+            
+            // Add a session token for additional security
+            if (!isset($_SESSION['auth_token'])) {
+                $_SESSION['auth_token'] = bin2hex(random_bytes(32));
+            }
+            
+            return $userId;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if an email is available (not already registered)
+     * 
+     * @param string $email Email to check
+     * @return bool True if email is available, false if already exists
+     */
+    public function isEmailAvailable(string $email): bool {
+        $userModel = new User();
+        return $userModel->isEmailAvailable($email);
+    }
+
+    /**
+     * Check if a national ID is available (not already registered)
+     * 
+     * @param string $nationalId National ID to check
+     * @return bool True if national ID is available, false if already exists
+     */
+    public function isNationalIdAvailable(string $nationalId): bool {
+        $userModel = new User();
+        return $userModel->isNationalIdAvailable($nationalId);
+    }
 }
 
 // Standalone login function for backward compatibility

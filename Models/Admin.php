@@ -1,219 +1,50 @@
 <?php
-require_once '../Models/Database.php';
-require_once 'User.php';
+// Make sure we're not using namespace if the other models aren't using it
+// If you want to use namespaces, make sure all files are consistent
+// Remove the namespace line if other models don't use it
+// namespace Models;
+
+require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/User.php';
 
 class Admin extends User {
     protected $db;
-
 
     public function __construct() {
         $this->db = new Database();
     }
 
-    public function getDashboardData(): array {
-        $dashboardData = [
-            'stats' => $this->getStats(),
-            'recentActivity' => $this->getRecentActivity(),
-            'pendingReports' => $this->getPendingReports(),
-            'pendingVerifications' => $this->getPendingVerifications(),
-            'recentOpportunities' => $this->getRecentOpportunities()
-        ];
-
-        return $dashboardData;
-    }
-
-    public function getStats(): array {
-        $this->db->openConnection();
-
-        // Get total hosts count
-        $hostsQuery = "SELECT COUNT(*) as total_hosts FROM users WHERE user_type = 'host'";
-        $hostsResult = $this->db->select($hostsQuery);
-        $totalHosts = $hostsResult[0]['total_hosts'] ?? 0;
-
-        // Get hosts growth (last 30 days)
-        $hostsGrowthQuery = "SELECT
-            COUNT(*) as new_hosts,
-            (SELECT COUNT(*) FROM users WHERE user_type = 'host' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_hosts
-            FROM users
-            WHERE user_type = 'host' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $hostsGrowthResult = $this->db->select($hostsGrowthQuery);
-        $newHosts = $hostsGrowthResult[0]['new_hosts'] ?? 0;
-        $oldHosts = $hostsGrowthResult[0]['old_hosts'] ?? 1; // Prevent division by zero
-        $hostsGrowth = ($oldHosts > 0) ? round(($newHosts / $oldHosts) * 100) : 0;
-
-        // Get total travelers count
-        $travelersQuery = "SELECT COUNT(*) as total_travelers FROM users WHERE user_type = 'traveler'";
-        $travelersResult = $this->db->select($travelersQuery);
-        $totalTravelers = $travelersResult[0]['total_travelers'] ?? 0;
-
-        // Get travelers growth (last 30 days)
-        $travelersGrowthQuery = "SELECT
-            COUNT(*) as new_travelers,
-            (SELECT COUNT(*) FROM users WHERE user_type = 'traveler' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_travelers
-            FROM users
-            WHERE user_type = 'traveler' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $travelersGrowthResult = $this->db->select($travelersGrowthQuery);
-        $newTravelers = $travelersGrowthResult[0]['new_travelers'] ?? 0;
-        $oldTravelers = $travelersGrowthResult[0]['old_travelers'] ?? 1; // Prevent division by zero
-        $travelersGrowth = ($oldTravelers > 0) ? round(($newTravelers / $oldTravelers) * 100) : 0;
-
-        // Get active homestays count
-        $homestaysQuery = "SELECT COUNT(*) as active_homestays FROM opportunity WHERE status = 'open'";
-        $homestaysResult = $this->db->select($homestaysQuery);
-        $activeHomestays = $homestaysResult[0]['active_homestays'] ?? 0;
-
-        // Get homestays growth (last 30 days)
-        $homestaysGrowthQuery = "SELECT
-            COUNT(*) as new_homestays,
-            (SELECT COUNT(*) FROM opportunity WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_homestays
-            FROM opportunity
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $homestaysGrowthResult = $this->db->select($homestaysGrowthQuery);
-        $newHomestays = $homestaysGrowthResult[0]['new_homestays'] ?? 0;
-        $oldHomestays = $homestaysGrowthResult[0]['old_homestays'] ?? 1; // Prevent division by zero
-        $homestaysGrowth = ($oldHomestays > 0) ? round(($newHomestays / $oldHomestays) * 100) : 0;
-
-        // Get pending applications count
-        $applicationsQuery = "SELECT COUNT(*) as pending_applications FROM applications WHERE status = 'pending'";
-        $applicationsResult = $this->db->select($applicationsQuery);
-        $pendingApplications = $applicationsResult[0]['pending_applications'] ?? 0;
-
-        // Get applications growth (last 30 days)
-        $applicationsGrowthQuery = "SELECT
-            COUNT(*) as new_applications,
-            (SELECT COUNT(*) FROM applications WHERE applied_date < DATE_SUB(NOW(), INTERVAL 30 DAY)) as old_applications
-            FROM applications
-            WHERE applied_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $applicationsGrowthResult = $this->db->select($applicationsGrowthQuery);
-        $newApplications = $applicationsGrowthResult[0]['new_applications'] ?? 0;
-        $oldApplications = $applicationsGrowthResult[0]['old_applications'] ?? 1; // Prevent division by zero
-        $applicationsGrowth = ($oldApplications > 0) ? round(($newApplications / $oldApplications) * 100) : 0;
-
-        $this->db->closeConnection();
-
-        return [
-            'totalHosts' => $totalHosts,
-            'hostsGrowth' => $hostsGrowth,
-            'totalTravelers' => $totalTravelers,
-            'travelersGrowth' => $travelersGrowth,
-            'activeHomestays' => $activeHomestays,
-            'homestaysGrowth' => $homestaysGrowth,
-            'pendingApplications' => $pendingApplications,
-            'applicationsGrowth' => $applicationsGrowth
-        ];
-    }
-
-    public function getRecentActivity(int $limit = 30): array {
-        $this->db->openConnection();
-
-        $query = "SELECT ual.*, u.first_name, u.last_name, u.user_type
-                 FROM user_activity_log ual
-                 LEFT JOIN users u ON ual.user_id = u.user_id
-                 ORDER BY ual.created_at DESC
-                 LIMIT ?";
-
-        $params = [$limit];
-        $result = $this->db->selectPrepared($query, "i", $params);
-
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
-    public function getPendingReports(int $limit = 5): array {
-        $this->db->openConnection();
-
-        $query = "SELECT r.*,
-                 u1.first_name as reporter_first_name, u1.last_name as reporter_last_name,
-                 u2.first_name as target_first_name, u2.last_name as target_last_name
-                 FROM report r
-                 LEFT JOIN users u1 ON r.reported_by_id = u1.user_id
-                 LEFT JOIN users u2 ON r.target_user_id = u2.user_id
-                 WHERE r.status = 'open'
-                 ORDER BY r.created_at DESC
-                 LIMIT ?";
-
-        $params = [$limit];
-        $result = $this->db->selectPrepared($query, "i", $params);
-
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
-    public function getPendingVerifications(int $limit = 5): array {
-        $this->db->openConnection();
-
-        $query = "SELECT pvr.*, u.first_name, u.last_name
-                 FROM payment_verification_requests pvr
-                 LEFT JOIN users u ON pvr.traveler_id = u.user_id
-                 WHERE pvr.status != 'resolved'
-                 ORDER BY
-                 CASE pvr.priority
-                   WHEN 'urgent' THEN 1
-                   WHEN 'high' THEN 2
-                   WHEN 'normal' THEN 3
-                   WHEN 'low' THEN 4
-                 END,
-                 pvr.created_at DESC
-                 LIMIT ?";
-
-        $params = [$limit];
-        $result = $this->db->selectPrepared($query, "i", $params);
-
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
-    public function getRecentOpportunities(int $limit = 5): array {
-        $this->db->openConnection();
-
-        $query = "SELECT o.*, u.first_name, u.last_name
-                 FROM opportunity o
-                 LEFT JOIN users u ON o.host_id = u.user_id
-                 ORDER BY o.created_at DESC
-                 LIMIT ?";
-
-        $params = [$limit];
-        $result = $this->db->selectPrepared($query, "i", $params);
-
-        $this->db->closeConnection();
-
-        return $result ?: [];
-    }
-
-    public function getUserData($userID) {
+    /**
+     * Get admin user data
+     * 
+     * @param int $userId Admin user ID
+     * @return array|bool Admin data or false on failure
+     */
+    public function getUserData($userId) {
         if (!$this->db->openConnection()) {
-            return null; // If DB connection fails, return null
+            return false;
         }
-
-        // Check if the user exists in the users table
-        $checkQuery = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
-        $checkParams = [$userID];
-        $adminData = $this->db->selectPrepared($checkQuery, "i", $checkParams);
         
-        // If no admin record exists, return null
-        if (!$adminData) {
-            $this->db->closeConnection();
-            return null;
-        }
-
-        // Query to select admin data
-        $query = "SELECT * FROM users WHERE user_id = ? AND user_type = 'admin'";
+        $query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, u.profile_picture, 
+                 u.created_at, u.last_login, u.user_type, u.gender, u.date_of_birth, u.national_id
+                 FROM users u 
+                 WHERE u.user_id = ? AND u.user_type = 'admin'";
+        $params = [$userId];
         
-        // Prepare parameters
-        $params = [$userID];
+        $result = $this->db->selectPrepared($query, "i", $params);
         
-        // Fetch user data
-        $userData = $this->db->selectPrepared($query, "i", $params);
-
-        // Close the connection after fetching the data
         $this->db->closeConnection();
-
-        // If no user data found, return null
-        return $userData ? $userData[0] : null;
+        
+        return $result && count($result) > 0 ? $result[0] : false;
     }
+
+    /**
+     * Update admin user profile
+     * 
+     * @param int $userId Admin user ID
+     * @param array $userData Updated profile data
+     * @return bool Success status
+     */
     public function updateUserProfile($userId, $userData) {
         if (!$this->db->openConnection()) {
             return false;
@@ -240,10 +71,184 @@ class Admin extends User {
         
         return $result;
     }
+    
+    /**
+     * Get dashboard data for admin
+     *
+     * @return array Dashboard data including stats, activities, and pending items
+     */
+    public function getDashboardData() {
+        if (!$this->db->openConnection()) {
+            return [
+                'stats' => [],
+                'recentActivity' => [],
+                'pendingReports' => [],
+                'pendingVerifications' => [],
+                'recentOpportunities' => []
+            ];
+        }
+        
+        try {
+            // Get stats
+            $stats = $this->getStats();
+            
+            // Get recent activity
+            $recentActivity = $this->getRecentActivity();
+            
+            // Get pending reports
+            $pendingReports = $this->getPendingReports();
+            
+            // Get pending verifications
+            $pendingVerifications = $this->getPendingVerifications();
+            
+            // Get recent opportunities
+            $recentOpportunities = $this->getRecentOpportunities();
+            
+            return [
+                'stats' => $stats,
+                'recentActivity' => $recentActivity,
+                'pendingReports' => $pendingReports,
+                'pendingVerifications' => $pendingVerifications,
+                'recentOpportunities' => $recentOpportunities
+            ];
+        } catch (Exception $e) {
+            error_log("Error getting admin dashboard data: " . $e->getMessage());
+            return [
+                'stats' => [],
+                'recentActivity' => [],
+                'pendingReports' => [],
+                'pendingVerifications' => [],
+                'recentOpportunities' => []
+            ];
+        } finally {
+            $this->db->closeConnection();
+        }
+    }
+    
+    /**
+     * Get system statistics
+     *
+     * @return array System statistics
+     */
+    public function getStats() {
+        // Get total users
+        $usersQuery = "SELECT 
+                      (SELECT COUNT(*) FROM users WHERE user_type = 'traveler') as totalTravelers,
+                      (SELECT COUNT(*) FROM users WHERE user_type = 'host') as totalHosts,
+                      (SELECT COUNT(*) FROM opportunity) as totalOpportunities,
+                      (SELECT COUNT(*) FROM applications) as totalApplications";
+        $statsResult = $this->db->select($usersQuery);
+        
+        return $statsResult ? $statsResult[0] : [
+            'totalTravelers' => 0,
+            'totalHosts' => 0,
+            'totalOpportunities' => 0,
+            'totalApplications' => 0
+        ];
+    }
+    
+    /**
+     * Get recent activity
+     *
+     * @param int $limit Number of records to return
+     * @return array Recent activity
+     */
+    public function getRecentActivity($limit = 10) {
+        $query = "SELECT 'new_user' as activity_type, u.user_id, u.user_type, u.first_name, u.last_name, u.created_at as timestamp
+                 FROM users u
+                 WHERE u.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 UNION
+                 SELECT 'new_opportunity' as activity_type, o.host_id as user_id, 'host' as user_type, u.first_name, u.last_name, o.created_at as timestamp
+                 FROM opportunity o
+                 JOIN users u ON o.host_id = u.user_id
+                 WHERE o.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 UNION
+                 SELECT 'new_application' as activity_type, a.traveler_id as user_id, 'traveler' as user_type, u.first_name, u.last_name, a.applied_date as timestamp
+                 FROM applications a
+                 JOIN users u ON a.traveler_id = u.user_id
+                 WHERE a.applied_date > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 ORDER BY timestamp DESC
+                 LIMIT ?";
+        
+        $params = [$limit];
+        $result = $this->db->selectPrepared($query, "i", $params);
+        
+        return $result ?: [];
+    }
+    
+    /**
+     * Get pending reports
+     *
+     * @param int $limit Number of records to return
+     * @return array Pending reports
+     */
+    public function getPendingReports($limit = 5) {
+        // This is a placeholder. Adjust according to your actual database schema
+        $query = "SELECT r.report_id, r.reporter_id, r.reported_id, r.report_type, r.reason, r.created_at,
+                 u1.first_name as reporter_first_name, u1.last_name as reporter_last_name,
+                 u2.first_name as reported_first_name, u2.last_name as reported_last_name
+                 FROM reports r
+                 JOIN users u1 ON r.reporter_id = u1.user_id
+                 JOIN users u2 ON r.reported_id = u2.user_id
+                 WHERE r.status = 'pending'
+                 ORDER BY r.created_at DESC
+                 LIMIT ?";
+        
+        $params = [$limit];
+        $result = $this->db->selectPrepared($query, "i", $params);
+        
+        // If the reports table doesn't exist yet, return empty array
+        if ($result === false) {
+            return [];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get pending verifications
+     *
+     * @param int $limit Number of records to return
+     * @return array Pending verifications
+     */
+    public function getPendingVerifications($limit = 5) {
+        // This is a placeholder. Adjust according to your actual database schema
+        $query = "SELECT v.verification_id, v.user_id, v.verification_type, v.submitted_at,
+                 u.first_name, u.last_name, u.user_type
+                 FROM verifications v
+                 JOIN users u ON v.user_id = u.user_id
+                 WHERE v.status = 'pending'
+                 ORDER BY v.submitted_at DESC
+                 LIMIT ?";
+        
+        $params = [$limit];
+        $result = $this->db->selectPrepared($query, "i", $params);
+        
+        // If the verifications table doesn't exist yet, return empty array
+        if ($result === false) {
+            return [];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get recent opportunities
+     *
+     * @param int $limit Number of records to return
+     * @return array Recent opportunities
+     */
+    public function getRecentOpportunities($limit = 5) {
+        $query = "SELECT o.opportunity_id, o.title, o.location, o.start_date, o.end_date, o.status, o.created_at,
+                 u.user_id as host_id, u.first_name as host_first_name, u.last_name as host_last_name
+                 FROM opportunity o
+                 JOIN users u ON o.host_id = u.user_id
+                 ORDER BY o.created_at DESC
+                 LIMIT ?";
+        
+        $params = [$limit];
+        $result = $this->db->selectPrepared($query, "i", $params);
+        
+        return $result ?: [];
+    }
 }
-?>
-
-
-
-
-

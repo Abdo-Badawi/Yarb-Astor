@@ -8,8 +8,6 @@ if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
 
 require_once '../Controllers/OpportunityController.php';
 require_once '../Controllers/Validation.php';
-require_once '../Models/Opportunity.php';
-use Models\Opportunity;
 
 // Check if opportunity ID is provided
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -24,7 +22,7 @@ $hostId = $_SESSION['userID'];
 $opportunityController = new OpportunityController();
 
 // Get opportunity details
-$opportunity = $opportunityController->getOppById($opportunityId);
+$opportunity = $opportunityController->getOpportunityById($opportunityId);
 
 // Check if opportunity exists and belongs to the current host
 if (!$opportunity || $opportunity['host_id'] != $hostId) {
@@ -100,16 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 // Create data array for update
-                $startDate = new DateTime($fields['start_date']);
-                $endDate = new DateTime($fields['end_date']);
-                
                 $updateData = [
                     'opportunity_id' => $opportunityId,
                     'title' => $fields['title'],
                     'description' => $fields['description'],
                     'location' => $fields['location'],
-                    'start_date' => $startDate->format('Y-m-d'),
-                    'end_date' => $endDate->format('Y-m-d'),
+                    'start_date' => $fields['start_date'],
+                    'end_date' => $fields['end_date'],
                     'category' => $fields['category'],
                     'requirements' => $fields['requirements'],
                     'opportunity_photo' => $imagePath,
@@ -117,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 // Update opportunity in DB using OpportunityController
-                if ($opportunityController->updateOpp($updateData)) {
+                if ($opportunityController->updateOpportunity($updateData)) {
                     // Success - redirect to opportunities.php with success message
                     $_SESSION['opportunity_success'] = "Opportunity updated successfully.";
                     header("Location: opportunities.php");
@@ -308,38 +303,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="../js/main.js"></script>
     
     <script>
-        // Date validation
-        document.getElementById('editOpportunityForm').addEventListener('submit', function(e) {
-            const startDate = new Date(document.getElementById('startDate').value);
-            const endDate = new Date(document.getElementById('endDate').value);
+        // Client-side validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('editOpportunityForm');
             
-            if (endDate < startDate) {
-                e.preventDefault();
-                alert('End date cannot be earlier than start date.');
-            }
-        });
-        
-        // Preview image before upload
-        document.getElementById('image').addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                const preview = document.querySelector('.img-thumbnail');
+            form.addEventListener('submit', function(e) {
+                let hasErrors = false;
+                const errorMessages = [];
                 
-                reader.addEventListener('load', function() {
-                    if (preview) {
-                        preview.src = this.result;
-                    } else {
-                        const newPreview = document.createElement('img');
-                        newPreview.src = this.result;
-                        newPreview.classList.add('img-thumbnail');
-                        newPreview.style.maxHeight = '150px';
-                        document.querySelector('.mb-3:last-child').prepend(newPreview);
-                    }
-                });
+                // Get form fields
+                const title = document.getElementById('opportunityTitle').value.trim();
+                const category = document.getElementById('category').value.trim();
+                const startDate = new Date(document.getElementById('startDate').value);
+                const endDate = new Date(document.getElementById('endDate').value);
+                const location = document.getElementById('location').value.trim();
+                const requirements = document.getElementById('requirements').value.trim();
+                const description = document.getElementById('description').value.trim();
                 
-                reader.readAsDataURL(file);
-            }
+                // Validate title
+                if (title === '') {
+                    hasErrors = true;
+                    errorMessages.push('Title is required');
+                    document.getElementById('opportunityTitle').classList.add('is-invalid');
+                } else {
+                    document.getElementById('opportunityTitle').classList.remove('is-invalid');
+                }
+                
+                // Validate category
+                if (category === '') {
+                    hasErrors = true;
+                    errorMessages.push('Category is required');
+                    document.getElementById('category').classList.add('is-invalid');
+                } else {
+                    document.getElementById('category').classList.remove('is-invalid');
+                }
+                
+                // Validate dates
+                if (isNaN(startDate.getTime())) {
+                    hasErrors = true;
+                    errorMessages.push('Start date is required');
+                    document.getElementById('startDate').classList.add('is-invalid');
+                } else {
+                    document.getElementById('startDate').classList.remove('is-invalid');
+                }
+                
+                if (isNaN(endDate.getTime())) {
+                    hasErrors = true;
+                    errorMessages.push('End date is required');
+                    document.getElementById('endDate').classList.add('is-invalid');
+                } else {
+                    document.getElementById('endDate').classList.remove('is-invalid');
+                }
+                
+                // Validate end date is after start date
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate < startDate) {
+                    hasErrors = true;
+                    errorMessages.push('End date must be after start date');
+                    document.getElementById('endDate').classList.add('is-invalid');
+                }
+                
+                // Validate location
+                if (location === '') {
+                    hasErrors = true;
+                    errorMessages.push('Location is required');
+                    document.getElementById('location').classList.add('is-invalid');
+                } else {
+                    document.getElementById('location').classList.remove('is-invalid');
+                }
+                
+                // Validate requirements
+                if (requirements === '') {
+                    hasErrors = true;
+                    errorMessages.push('Requirements are required');
+                    document.getElementById('requirements').classList.add('is-invalid');
+                } else {
+                    document.getElementById('requirements').classList.remove('is-invalid');
+                }
+                
+                // Validate description
+                if (description === '') {
+                    hasErrors = true;
+                    errorMessages.push('Description is required');
+                    document.getElementById('description').classList.add('is-invalid');
+                } else {
+                    document.getElementById('description').classList.remove('is-invalid');
+                }
+                
+                // If there are errors, prevent form submission and show error messages
+                if (hasErrors) {
+                    e.preventDefault();
+                    
+                    // Create error alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.role = 'alert';
+                    
+                    let alertContent = '<strong>Please correct the following errors:</strong><ul>';
+                    errorMessages.forEach(message => {
+                        alertContent += `<li>${message}</li>`;
+                    });
+                    alertContent += '</ul>';
+                    alertContent += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                    
+                    alertDiv.innerHTML = alertContent;
+                    
+                    // Insert alert at the top of the form
+                    const formCard = document.querySelector('.card-body');
+                    formCard.insertBefore(alertDiv, formCard.firstChild);
+                    
+                    // Scroll to the top of the form
+                    window.scrollTo({
+                        top: form.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+            
+            // Preview image before upload
+            document.getElementById('image').addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    const preview = document.querySelector('.img-thumbnail');
+                    
+                    reader.addEventListener('load', function() {
+                        if (preview) {
+                            preview.src = this.result;
+                        } else {
+                            const newPreview = document.createElement('img');
+                            newPreview.src = this.result;
+                            newPreview.classList.add('img-thumbnail');
+                            newPreview.style.maxHeight = '150px';
+                            document.querySelector('.mb-3:last-child').prepend(newPreview);
+                        }
+                    });
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
         });
     </script>
 </body>

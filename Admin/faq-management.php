@@ -11,8 +11,9 @@ if (!isset($_SESSION['auth_token'])) {
     $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
 
-require_once '../Models/SupportContent.php';
-require_once '../Controllers/SupportContent.php';
+// Fix the require statements - use absolute paths with __DIR__
+require_once __DIR__ . '/../Models/SupportContent.php';
+require_once __DIR__ . '/../Controllers/SupportContent.php';
 
 // Initialize the controller
 $controller = new SupportController();
@@ -829,3 +830,6 @@ $faqs = $faqsResult['success'] ? $faqsResult['data'] : [];
 </body>
 
 </html>
+
+
+

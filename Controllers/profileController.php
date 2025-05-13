@@ -1,54 +1,83 @@
 <?php
-    include_once '../Models/Traveler.php';
-    include_once '../Models/Host.php';
-    include_once '../Models/Admin.php';
+// Fix the include statements to use the correct paths
+include_once __DIR__ . '/../Models/Traveler.php';
+include_once __DIR__ . '/../Models/Host.php';
+include_once __DIR__ . '/../Models/Admin.php';
 
-
-
-    function viewHostProfile() {
-        $host = new Host();
-        $hostId = $_SESSION['userID'];
-        $hostProfile = $host->getUserData($hostId);
-        return $hostProfile;    
-    }
-
-    function updateHostProfile($userId, $userData) {
-        $host = new Host();
-        // Make sure we're using the correct method
-        $result = $host->updateUserProfile($userId, $userData);
-        return $result;        
-    }
-
-    function viewTravelerProfile() {
+class ProfileController {
+    
+    /**
+     * View traveler profile data
+     * 
+     * @return array|bool Traveler profile data or false on failure
+     */
+    public function viewTravelerProfile() {
         $traveler = new Traveler();
         $travelerId = $_SESSION['userID'];
-        $travelerProfile = $traveler->getUserData($travelerId);
+        $travelerProfile = $traveler->getTravelerData($travelerId);
         return $travelerProfile;
     }
-
-    function updateTravelerProfile($userId, $userData) {
+    
+    /**
+     * Update traveler profile data
+     * 
+     * @param array $userData Updated profile data
+     * @return bool Success status
+     */
+    public function updateTravelerProfile($userData) {
         $traveler = new Traveler();
-        // Make sure we're using the correct method
-        $result = $traveler->updateUserProfile($userId, $userData);
-        return $result;        
+        $travelerId = $_SESSION['userID'];
+        $result = $traveler->updateTravelerProfile($travelerId, $userData);
+        return $result;
     }
-
-
-    function viewAdminProfile(){
+    
+    /**
+     * View host profile data
+     * 
+     * @return array|bool Host profile data or false on failure
+     */
+    public function viewHostProfile() {
+        $host = new Host();
+        $hostId = $_SESSION['userID'];
+        $hostProfile = $host->getHostData($hostId);
+        return $hostProfile;
+    }
+    
+    /**
+     * Update host profile data
+     * 
+     * @param array $userData Updated profile data
+     * @return bool Success status
+     */
+    public function updateHostProfile($userData) {
+        $host = new Host();
+        $hostId = $_SESSION['userID'];
+        $result = $host->updateHostProfile($userData);
+        return $result;
+    }
+    
+    /**
+     * View admin profile data
+     * 
+     * @return array|bool Admin profile data or false on failure
+     */
+    public function viewAdminProfile() {
         $admin = new Admin();
         $adminId = $_SESSION['userID'];
         $adminProfile = $admin->getUserData($adminId);
         return $adminProfile;
     }
 
-    function updateAdminProfile($userData) {
+    /**
+     * Update admin profile data
+     * 
+     * @param array $userData Updated profile data
+     * @return bool Success status
+     */
+    public function updateAdminProfile($userData) {
         $admin = new Admin();
         $adminId = $_SESSION['userID'];
         $result = $admin->updateUserProfile($adminId, $userData);
         return $result;
-
     }
-    
-?>
-
-
+}

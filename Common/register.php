@@ -6,9 +6,6 @@ session_start();
 
 // Include necessary files
 include_once '../Controllers/AuthController.php';
-include_once '../Models/User.php';
-include_once '../Controllers/DBController.php';
-use Models\User;
 
 // Initialize variables
 $errMsg = null;
@@ -28,21 +25,20 @@ if (isset($_SESSION['registration_error'])) {
 // Process the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Collect form data
-    $fields = [
+    $userData = [
         'first_name' => $_POST['firstName'] ?? null,
         'last_name' => $_POST['lastName'] ?? null,
         'email' => $_POST['email'] ?? null,
         'password' => $_POST['password'] ?? null,
-        'confirm_password' => $_POST['confirmPassword'] ?? null,
-        'phone' => $_POST['phone'] ?? null,
+        'phone_number' => $_POST['phone'] ?? null,
         'gender' => $_POST['gender'] ?? null,
-        'birthday' => $_POST['birthday'] ?? null,
+        'date_of_birth' => $_POST['birthday'] ?? null,
         'national_id' => $_POST['nationalId'] ?? null,
-        'role' => $_POST['role'] ?? null
+        'user_type' => $_POST['role'] ?? null
     ];
 
     // Validate form data
-    if (in_array(null, $fields, true)) {
+    if (in_array(null, $userData, true)) {
         $errMsg = "Please fill in all required fields.";
         $_SESSION['registration_error'] = $errMsg;
         header("Location: register.php");
@@ -50,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validate email format
-    if (!filter_var($fields['email'], FILTER_VALIDATE_EMAIL)) {
+    if (!filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
         $errMsg = "Invalid email format.";
         $_SESSION['registration_error'] = $errMsg;
         header("Location: register.php");
@@ -58,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validate password confirmation
-    if ($fields['password'] !== $fields['confirm_password']) {
+    if ($_POST['password'] !== $_POST['confirmPassword']) {
         $errMsg = "Passwords do not match.";
         $_SESSION['registration_error'] = $errMsg;
         header("Location: register.php");
@@ -86,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
         if (in_array(strtolower($fileType), $allowedTypes)) {
             if (move_uploaded_file($_FILES['photo']['tmp_name'], $targetFilePath)) {
-                $profilePicturePath = $targetFilePath;
+                $userData['profile_picture'] = $targetFilePath;
             } else {
                 $errMsg = "Failed to upload profile picture.";
                 $_SESSION['registration_error'] = $errMsg;
@@ -101,62 +97,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Include database connection
-    $db = new DBController();
-    if ($db->openConnection()) {
-        // Check if email or national ID already exists
-        $query = "SELECT COUNT(*) AS count FROM users WHERE email = ? OR national_id = ?";
-        $params = [$fields['email'], $fields['national_id']];
-        $result = $db->selectPrepared($query, "ss", $params);
-
-        if ($result && $result[0]['count'] > 0) {
-            $errMsg = "An account with this email or national ID already exists.";
-            $_SESSION['registration_error'] = $errMsg;
-            $db->closeConnection();
-            header("Location: register.php");
-            exit();
-        }
-        $db->closeConnection();
-    } else {
-        $errMsg = "Database connection failed.";
-        $_SESSION['registration_error'] = $errMsg;
-        header("Location: register.php");
-        exit();
-    }
-
-    // Hash the password
-    $hashedPassword = password_hash($fields['password'], PASSWORD_BCRYPT);
-
-    // Create a new User object
-    $user = new User($fields['email'], $hashedPassword);
-    $user->setFirstName($fields['first_name']);
-    $user->setLastName($fields['last_name']);
-    $user->setPhoneNumber($fields['phone']);
-    $user->setGender($fields['gender']);
-    $user->setBirthday($fields['birthday']);
-    $user->setNationalID($fields['national_id']);
-    $user->setUserType($fields['role']);
-    $user->setProfilePicture($profilePicturePath);
-
-    // Collect additional fields based on role
-    if ($fields['role'] === 'host') {
-        $user->setPropertyType($_POST['propertyType'] ?? null);
-        $user->setPreferredLanguage($_POST['preferredLanguageHost'] ?? null);
-        $user->setBio($_POST['bioHost'] ?? null);
-        $user->setLocation($_POST['locationHost'] ?? null);
-    } elseif ($fields['role'] === 'traveler') {
-        $user->setSkills($_POST['skills'] ?? null);
-        $user->setLanguageSpoken($_POST['languageSpoken'] ?? null);
-        $user->setPreferredLanguage($_POST['preferredLanguageTraveler'] ?? null);
-        $user->setBio($_POST['bioTraveler'] ?? null);
-        $user->setLocation($_POST['locationTraveler'] ?? null);
+    // Add role-specific fields to userData
+    if ($userData['user_type'] === 'host') {
+        $userData['property_type'] = $_POST['propertyType'] ?? null;
+        $userData['preferred_language'] = $_POST['preferredLanguageHost'] ?? null;
+        $userData['bio'] = $_POST['bioHost'] ?? null;
+        $userData['location'] = $_POST['locationHost'] ?? null;
+    } elseif ($userData['user_type'] === 'traveler') {
+        $userData['skills'] = $_POST['skills'] ?? null;
+        $userData['language_spoken'] = $_POST['languageSpoken'] ?? null;
+        $userData['preferred_language'] = $_POST['preferredLanguageTraveler'] ?? null;
+        $userData['bio'] = $_POST['bioTraveler'] ?? null;
+        $userData['location'] = $_POST['locationTraveler'] ?? null;
     }
 
     // Use AuthController to register the user
     $authController = new AuthController();
-    if ($authController->register($user)) {
+    
+    // Check if email or national ID already exists using the controller
+    if (!$authController->isEmailAvailable($userData['email'])) {
+        $errMsg = "An account with this email already exists.";
+        $_SESSION['registration_error'] = $errMsg;
+        header("Location: register.php");
+        exit();
+    }
+    
+    if (!$authController->isNationalIdAvailable($userData['national_id'])) {
+        $errMsg = "An account with this national ID already exists.";
+        $_SESSION['registration_error'] = $errMsg;
+        header("Location: register.php");
+        exit();
+    }
+    
+    // Register the user
+    $result = $authController->register($userData);
+
+    if ($result) {
         $_SESSION['registration_success'] = "Registration successful!";
-        $_SESSION['user_role'] = $fields['role']; // Store the user's role in the session
+        $_SESSION['user_role'] = $userData['user_type']; // Store the user's role in the session
         header("Location: registration-success.php");
         exit();
     } else {
@@ -731,3 +709,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 </body>
 </html>
+
+

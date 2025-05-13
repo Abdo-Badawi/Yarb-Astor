@@ -4,16 +4,21 @@ require_once '../Controllers/MessageController.php';
 require_once '../Controllers/TravelerController.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['userID'])) {
+if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'host') {
     header("Location: ../Common/login.php");
     exit;
+}
+
+// Add a session token for additional security
+if (!isset($_SESSION['auth_token'])) {
+    $_SESSION['auth_token'] = bin2hex(random_bytes(32));
 }
 
 $hostId = $_SESSION['userID'];
 
 // Create controllers
 $messageController = new MessageController();
-$travelerController = new TravelerController();
+$travelerController = new TravelerController(); // Initialize the TravelerController
 
 // Get all conversations for this host
 $conversations = $messageController->getRecentConversations($hostId, 'host');
@@ -54,23 +59,25 @@ else if (!empty($conversations)) {
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $activeTravelerId) {
-    $messageData = [
-        'sender_id' => $hostId,
-        'receiver_id' => $activeTravelerId,
-        'message' => $_POST['message'],
-        'status' => 'delivered',
-        'is_read' => 0,
-        'sender_type' => 'host',
-        'receiver_type' => 'traveler'
-    ];
-    
-    $result = $messageController->sendMessage($messageData);
-    
-    if ($result) {
-        // Redirect to prevent form resubmission
-        header("Location: messages.php?traveler_id=" . $activeTravelerId);
-        exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['token']) && $_POST['token'] === $_SESSION['auth_token']) {
+    if ($activeTravelerId) {
+        $messageData = [
+            'sender_id' => $hostId,
+            'receiver_id' => $activeTravelerId,
+            'content' => $_POST['message'],
+            'status' => 'delivered',
+            'is_read' => 0,
+            'sender_type' => 'host',
+            'receiver_type' => 'traveler'
+        ];
+        
+        $result = $messageController->sendMessage($messageData);
+        
+        if ($result) {
+            // Redirect to prevent form resubmission
+            header("Location: messages.php?traveler_id=" . $activeTravelerId);
+            exit;
+        }
     }
 }
 ?>
@@ -308,6 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
                                 <form action="messages.php?traveler_id=<?= $activeTravelerId ?>" method="post">
                                     <div class="input-group">
                                         <input type="text" class="form-control" name="message" placeholder="Type your message..." required>
+                                        <input type="hidden" name="token" value="<?= $_SESSION['auth_token'] ?>">
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fa fa-paper-plane"></i>
                                         </button>
@@ -377,6 +385,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $active
     </script>
 </body>
 </html> 
+
+
+
 
 
 

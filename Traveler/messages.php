@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../Controllers/MessageController.php';
-// require_once '../Controllers/HostController.php';
+require_once '../Controllers/HostController.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['userID']) || $_SESSION['userType'] !== 'traveler') {
@@ -18,7 +18,7 @@ $travelerId = $_SESSION['userID'];
 
 // Create controllers
 $messageController = new MessageController();
-// $hostController = new HostController();
+$hostController = new HostController();
 
 // Get all conversations for this traveler
 $conversations = $messageController->getRecentConversations($travelerId, 'traveler');
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
         $messageData = [
             'sender_id' => $travelerId,
             'receiver_id' => $activeHostId,
-            'message' => $_POST['message'],
+            'content' => $_POST['message'],
             'status' => 'delivered',
             'is_read' => 0,
             'sender_type' => 'traveler',
@@ -314,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
                                 <form action="messages.php?host_id=<?= $activeHostId ?>" method="post">
                                     <div class="input-group">
                                         <input type="text" class="form-control" name="message" placeholder="Type your message..." required>
+                                        <input type="hidden" name="token" value="<?= $_SESSION['auth_token'] ?>">
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fa fa-paper-plane"></i>
                                         </button>

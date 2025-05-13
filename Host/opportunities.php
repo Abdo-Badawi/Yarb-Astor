@@ -29,7 +29,8 @@ $opportunityController = new OpportunityController();
 
 // Get all opportunities for the current host
 $hostId = $_SESSION['userID'];
-$opportunities = $opportunityController->getOppByHostId($hostId);
+// Fix: Change getOppByHostId to getOpportunitiesByHostID
+$opportunities = $opportunityController->getOpportunitiesByHostID($hostId);
 ?>
 
 <!DOCTYPE html>
@@ -133,7 +134,7 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
             </div>
 
             <!-- Opportunities List -->
-            <div class="row g-4">
+            <div class="row g-4" id="opportunitiesContainer">
                 <?php
                 // Print the opportunities using the printOpportunities method
                 if (empty($opportunities)) {
@@ -145,25 +146,33 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
                                       (($opportunity['status'] === 'cancelled') ? 'bg-warning' : 'bg-secondary'));
                         
                         echo '<div class="col-lg-6 mb-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <img src="../uploads/opportunities/' . ($opportunity['opportunity_photo'] ?? 'default.jpg') . '" alt="Opportunity" class="img-fluid rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+                                <div class="card border-0 shadow-sm h-100 opportunity-card" data-id="' . $opportunity['opportunity_id'] . '">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
                                             <h5 class="card-title mb-0">' . htmlspecialchars($opportunity['title']) . '</h5>
-                                            <span class="badge ' . $statusClass . ' text-white">' . ucfirst($opportunity['status']) . '</span>
+                                            <span class="badge ' . $statusClass . '">' . ucfirst(htmlspecialchars($opportunity['status'])) . '</span>
                                         </div>
-                                        <div class="mb-3">
-                                            <p class="mb-2"><i class="fa fa-clock me-2"></i>Created: ' . date('M d, Y', strtotime($opportunity['created_at'])) . '</p>
-                                            <p class="mb-2"><i class="bi bi-tags-fill me-2"></i>Category: ' . htmlspecialchars($opportunity['category']) . '</p>
-                                            <p class="mb-2"><i class="fa fa-map-marker-alt me-2"></i>Location: ' . htmlspecialchars($opportunity['location']) . '</p>
-                                            <p class="mb-2"><i class="bi bi-calendar-fill me-2"></i>Dates: ' . date('M d', strtotime($opportunity['start_date'])) . ' - ' . date('M d, Y', strtotime($opportunity['end_date'])) . '</p>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-3">
+                                        <p class="card-text text-muted mb-3">
+                                            <i class="fas fa-map-marker-alt me-2"></i>' . htmlspecialchars($opportunity['location']) . '
+                                        </p>
+                                        <p class="card-text mb-3">' . htmlspecialchars(substr($opportunity['description'], 0, 150)) . '...</p>
+                                        <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <a href="edit-opportunity.php?id=' . $opportunity['opportunity_id'] . '" class="btn btn-primary me-2 px-3">Edit</a>
-                                                <button class="btn btn-danger me-2 px-3" onclick="deleteOpportunity(' . $opportunity['opportunity_id'] . ')">Delete</button>
+                                                <small class="text-muted">
+                                                    <i class="far fa-calendar-alt me-1"></i> ' . date('M d, Y', strtotime($opportunity['start_date'])) . ' - ' . date('M d, Y', strtotime($opportunity['end_date'])) . '
+                                                </small>
                                             </div>
-                                            ' . (($opportunity['status'] === 'open') ? '<button class="btn btn-sm btn-warning" onclick="markAsFilled(' . $opportunity['opportunity_id'] . ')">Mark Filled</button>' : '') . '
+                                            <div class="btn-group">
+                                                <a href="view-opportunity.php?id=' . $opportunity['opportunity_id'] . '" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </a>
+                                                <a href="edit-opportunity.php?id=' . $opportunity['opportunity_id'] . '" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-edit me-1"></i> Edit
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteOpportunity(' . $opportunity['opportunity_id'] . ')">
+                                                    <i class="fas fa-trash-alt me-1"></i> Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -330,48 +339,108 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
 
     function deleteOpportunity(id) {
         if (confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
+            console.log('User confirmed deletion');
+            
+            // Show loading indicator
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'alert alert-info';
+            loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting opportunity...';
+            
+            const container = document.querySelector('.container.py-5');
+            const header = container.querySelector('.text-center.mb-5');
+            container.insertBefore(loadingIndicator, header.nextSibling);
+            
             // Send AJAX request to delete the opportunity
             fetch(`delete-opportunity.php?id=${id}`, {
-                method: 'POST'
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Accept': 'application/json'
+                }
             })
             .then(response => response.json())
             .then(data => {
+                // Remove loading indicator
+                loadingIndicator.remove();
+                
                 if (data.success) {
-                    // Show success message
+                    // Create a success alert
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.role = 'alert';
                     alertDiv.innerHTML = `
-                        <i class="fas fa-check-circle me-2"></i>Opportunity deleted successfully!
+                        <i class="fas fa-check-circle me-2"></i>${data.message}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     `;
                     
-                    // Insert the alert at the top of the opportunities container
-                    const container = document.querySelector('.container.py-5');
-                    const header = container.querySelector('.text-center.mb-5');
                     container.insertBefore(alertDiv, header.nextSibling);
                     
                     // Remove the opportunity card from the DOM
-                    const card = document.querySelector(`.opportunity-card[data-id="${id}"]`);
-                    if (card) {
-                        card.closest('.col-lg-4').remove();
+                    const opportunityCard = document.querySelector(`.card[data-id="${id}"]`);
+                    if (opportunityCard) {
+                        const cardColumn = opportunityCard.closest('.col-lg-6');
+                        if (cardColumn) {
+                            cardColumn.remove();
+                        } else {
+                            opportunityCard.remove();
+                        }
+                    } else {
+                        console.error('Could not find opportunity card with data-id:', id);
+                        // Try alternative selector
+                        const deleteButton = document.querySelector(`button[onclick*="deleteOpportunity(${id})"]`);
+                        if (deleteButton) {
+                            const card = deleteButton.closest('.card');
+                            if (card) {
+                                const cardColumn = card.closest('.col-lg-6');
+                                if (cardColumn) {
+                                    cardColumn.remove();
+                                } else {
+                                    card.remove();
+                                }
+                            }
+                        } else {
+                            console.error('Could not find delete button for opportunity ID:', id);
+                            // Reload the page as a fallback
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
                     }
                     
                     // Scroll to the top to show the success message
                     window.scrollTo({top: 0, behavior: 'smooth'});
-                    
-                    // Auto-dismiss the alert after 3 seconds
-                    setTimeout(() => {
-                        alertDiv.classList.remove('show');
-                        setTimeout(() => alertDiv.remove(), 150);
-                    }, 3000);
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    // Show error alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-circle me-2"></i>Error: ${data.error || 'Unknown error'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    
+                    container.insertBefore(alertDiv, header.nextSibling);
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while deleting the opportunity.');
+                console.error('Network error:', error);
+                
+                // Remove loading indicator
+                loadingIndicator.remove();
+                
+                // Show error alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>Network error: ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                container.insertBefore(alertDiv, header.nextSibling);
             });
+        } else {
+            console.log('User cancelled deletion');
         }
     }
 
@@ -402,6 +471,89 @@ $opportunities = $opportunityController->getOppByHostId($hostId);
             });
         }
     }
+
+    // Add this test function
+    function testDeleteOpportunity(id) {
+        console.log('Test delete function called for opportunity ID:', id);
+        
+        // Show loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'alert alert-info';
+        loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing delete functionality...';
+        
+        const container = document.querySelector('.container.py-5');
+        const header = container.querySelector('.text-center.mb-5');
+        container.insertBefore(loadingIndicator, header.nextSibling);
+        
+        // First try the simplified version
+        fetch(`delete-opportunity.php?id=${id}`, {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
+        })
+        .then(response => response.text())
+        .then(text => {
+            console.log('Simplified test response:', text);
+            
+            // Now try the more complete test version
+            return fetch(`delete-opportunity-test.php?id=${id}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            });
+        })
+        .then(response => response.text())
+        .then(text => {
+            console.log('Complete test response:', text);
+            
+            // Remove loading indicator
+            loadingIndicator.remove();
+            
+            // Show test results
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info alert-dismissible fade show';
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>Test completed. Check the console for results.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            container.insertBefore(alertDiv, header.nextSibling);
+        })
+        .catch(error => {
+            console.error('Test error:', error);
+            
+            // Remove loading indicator
+            loadingIndicator.remove();
+            
+            // Show error alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>Test error: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            container.insertBefore(alertDiv, header.nextSibling);
+        });
+    }
+
+    // Add a test button to each opportunity card
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.btn-outline-danger');
+        deleteButtons.forEach(button => {
+            const id = button.getAttribute('onclick').match(/\d+/)[0];
+            const testButton = document.createElement('button');
+            testButton.type = 'button';
+            testButton.className = 'btn btn-sm btn-outline-info ms-1';
+            testButton.innerHTML = '<i class="fas fa-vial me-1"></i> Test';
+            testButton.onclick = function() { testDeleteOpportunity(id); };
+            button.parentNode.appendChild(testButton);
+        });
+    });
     </script>
     <style>
     .pagination {

@@ -14,8 +14,11 @@ if (!isset($_SESSION['auth_token'])) {
 // Include the ProfileController to handle profile operations
 include_once '../Controllers/profileController.php';
 
+// Create an instance of ProfileController
+$profileController = new ProfileController();
+
 // Get admin data using the ProfileController
-$adminData = viewAdminProfile();
+$adminData = $profileController->viewAdminProfile();
 
 // If no admin data found, display an error
 if (!$adminData) {
@@ -51,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             ];
             
             // Update profile using ProfileController
-            $result = updateAdminProfile($userData);
+            $result = $profileController->updateAdminProfile($userData);
             
             if ($result) {
                 $successMsg = "Profile updated successfully!";
                 
                 // Refresh admin data
-                $adminData = viewAdminProfile();
+                $adminData = $profileController->viewAdminProfile();
             } else {
                 $errorMsg = "Failed to update profile. Please try again.";
             }
@@ -750,5 +753,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     </script>
 </body>
 </html>
+
 
 

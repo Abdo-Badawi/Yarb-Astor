@@ -48,12 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $messageData = [
             'sender_id' => $hostID,
             'receiver_id' => $application['traveler_id'],
-            'content' => "Good news! Your application for '{$application['title']}' has been accepted. Please check your email for further details.",
-            'timestamp' => date('Y-m-d H:i:s'),
+            'content' => "Congratulations! Your application for '{$application['title']}' has been accepted. We look forward to hosting you.",
+            'status' => 'delivered',
             'is_read' => 0,
             'sender_type' => 'host',
             'receiver_type' => 'traveler'
         ];
+        
         $messageController->sendMessage($messageData);
         
         $_SESSION['success_message'] = "Application has been accepted successfully.";
@@ -65,11 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'sender_id' => $hostID,
             'receiver_id' => $application['traveler_id'],
             'content' => "We regret to inform you that your application for '{$application['title']}' has not been accepted at this time. Thank you for your interest.",
-            'timestamp' => date('Y-m-d H:i:s'),
+            'status' => 'delivered',
             'is_read' => 0,
             'sender_type' => 'host',
             'receiver_type' => 'traveler'
         ];
+        
         $messageController->sendMessage($messageData);
         
         $_SESSION['success_message'] = "Application has been rejected.";

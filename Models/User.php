@@ -23,9 +23,10 @@ class User {
     protected $db;
 
 
-    public function __construct(string $email, string $password) {
+    public function __construct(string $email = '', string $password = '') {
         $this->email = $email;
         $this->password = $password;
+        $this->db = new Database();
     }
 
     // Existing setters
@@ -232,5 +233,150 @@ class User {
             header("Location: login.php");
             exit();
     }
+
+    /**
+     * Register a new user
+     * 
+     * @param array $userData User registration data
+     * @return int|bool User ID on success, false on failure
+     */
+    public function register(array $userData) {
+        $this->db = new Database();
+        if (!$this->db->openConnection()) {
+            error_log("Failed to establish database connection");
+            return false;
+        }
+
+        try {
+            // Start transaction
+            $this->db->conn->begin_transaction();
+            
+            // Hash the password
+            $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
+            
+            // Insert into the `users` table
+            $query = "INSERT INTO users
+                      (first_name, last_name, email, password, phone_number, profile_picture, gender, national_id, user_type, date_of_birth, created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            $params = [
+                $userData['first_name'],
+                $userData['last_name'],
+                $userData['email'],
+                $hashedPassword,
+                $userData['phone_number'] ?? null,
+                $userData['profile_picture'] ?? null,
+                $userData['gender'] ?? null,
+                $userData['national_id'] ?? null,
+                $userData['user_type'],
+                $userData['date_of_birth'] ?? null
+            ];
+
+            $result = $this->db->insert($query, "ssssssssss", $params);
+
+            if (!$result) {
+                throw new \Exception("Failed to insert into users table.");
+            }
+
+            // Get the last insert ID
+            $user_id = $this->db->getInsertId();
+            
+            if ($userData['user_type'] === 'traveler') {
+                $travelerQuery = "INSERT INTO traveler (traveler_id, skill, language_spoken, preferred_language, bio, location, joined_date)
+                                  VALUES (?, ?, ?, ?, ?, ?, NOW())";
+                $travelerParams = [
+                    $user_id, // Use the same user_id as a foreign key
+                    $userData['skills'] ?? '',
+                    $userData['language_spoken'] ?? '',
+                    $userData['preferred_language'] ?? '',
+                    $userData['bio'] ?? '',
+                    $userData['location'] ?? ''
+                ];
+                $travelerResult = $this->db->insert($travelerQuery, "isssss", $travelerParams);
+
+                if (!$travelerResult) {
+                    throw new \Exception("Failed to insert into traveler table.");
+                }
+            } elseif ($userData['user_type'] === 'host') {
+                $hostQuery = "INSERT INTO hosts (host_id, property_type, preferred_language, bio, location, joined_date)
+                              VALUES (?, ?, ?, ?, ?, NOW())";
+                $hostParams = [
+                    $user_id, // Use the same user_id as a foreign key
+                    $userData['property_type'] ?? '',
+                    $userData['preferred_language'] ?? '',
+                    $userData['bio'] ?? '',
+                    $userData['location'] ?? ''
+                ];
+                $hostResult = $this->db->insert($hostQuery, "issss", $hostParams);
+
+                if (!$hostResult) {
+                    throw new \Exception("Failed to insert into hosts table.");
+                }
+            }
+
+            // Commit the transaction
+            $this->db->conn->commit();
+            $this->db->closeConnection();
+            return $user_id; // Registration successful
+
+        } catch (\Exception $e) {
+            // Rollback the transaction on failure
+            $this->db->conn->rollback();
+            error_log("Transaction failed: " . $e->getMessage());
+            $this->db->closeConnection();
+            return false;
+        }
+    }
+
+    /**
+     * Check if an email is available (not already registered)
+     * 
+     * @param string $email Email to check
+     * @return bool True if email is available, false if already exists
+     */
+    public function isEmailAvailable(string $email): bool {
+        $this->db = new Database();
+        if (!$this->db->openConnection()) {
+            error_log("Failed to establish database connection");
+            return false;
+        }
+        
+        $query = "SELECT COUNT(*) AS count FROM users WHERE email = ?";
+        $result = $this->db->selectPrepared($query, "s", [$email]);
+        $this->db->closeConnection();
+        
+        if ($result && isset($result[0]['count'])) {
+            return $result[0]['count'] == 0;
+        }
+        
+        return true; // If there's an error, assume email is available
+    }
+
+    /**
+     * Check if a national ID is available (not already registered)
+     * 
+     * @param string $nationalId National ID to check
+     * @return bool True if national ID is available, false if already exists
+     */
+    public function isNationalIdAvailable(string $nationalId): bool {
+        $this->db = new Database();
+        if (!$this->db->openConnection()) {
+            error_log("Failed to establish database connection");
+            return false;
+        }
+        
+        $query = "SELECT COUNT(*) AS count FROM users WHERE national_id = ?";
+        $result = $this->db->selectPrepared($query, "s", [$nationalId]);
+        $this->db->closeConnection();
+        
+        if ($result && isset($result[0]['count'])) {
+            return $result[0]['count'] == 0;
+        }
+        
+        return true; // If there's an error, assume national ID is available
+    }
 }
 ?>
+
+
+
+

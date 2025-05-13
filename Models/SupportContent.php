@@ -1,27 +1,64 @@
 <?php
-require_once '../Models/Database.php';
+// Update the path to Database.php
+require_once __DIR__ . '/Database.php';
 
-class SupportController {
-    public int $ContentId;
-    public string $Title;
-    public string $Content;
-    public string $Category;
-    public string $Status;
-    public ?string $UserType = null;
-    public ?bool $Featured = null;
-    public \DateTime $CreatedAt;
-    public ?\DateTime $LastUpdated = null;
+class SupportContent {
     private $db;
-
+    
     public function __construct() {
         $this->db = new Database();
+    }
+    
+    /**
+     * Get all FAQs
+     * 
+     * @return array Result with success status and data
+     */
+    public function getAllFAQs() {
         $this->db->openConnection();
-    }
-
-    public function __destruct() {
+        
+        $query = "SELECT * FROM support_content ORDER BY created_at DESC";
+        $result = $this->db->select($query);
+        
         $this->db->closeConnection();
+        
+        if ($result) {
+            return ['success' => true, 'data' => $result];
+        } else {
+            return ['success' => false, 'error' => 'Failed to retrieve FAQs'];
+        }
     }
-
+    
+    /**
+     * Get FAQ by ID
+     * 
+     * @param int $id FAQ ID
+     * @return array Result with success status and data
+     */
+    public function getFAQById($id) {
+        $this->db->openConnection();
+        
+        $query = "SELECT * FROM support_content WHERE content_id = ?";
+        $types = "i";
+        $params = [$id];
+        
+        $result = $this->db->selectPrepared($query, $types, $params);
+        
+        $this->db->closeConnection();
+        
+        if ($result && count($result) > 0) {
+            return ['success' => true, 'data' => $result[0]];
+        } else {
+            return ['success' => false, 'error' => 'FAQ not found'];
+        }
+    }
+    
+    /**
+     * Save FAQ (create or update)
+     * 
+     * @param array $data FAQ data
+     * @return array Result with success status and message
+     */
     public function saveFAQ($postData) {
         if (!$postData) {
             return ['success' => false, 'error' => 'Invalid input'];
@@ -39,6 +76,8 @@ class SupportController {
         $status = $postData['faqStatus'] ?? 'draft';
         $lastUpdated = date('Y-m-d H:i:s');
 
+        $this->db->openConnection();
+        
         // Check which columns exist in the table
         $tableInfo = $this->db->select("DESCRIBE support_content");
         $columns = [];
@@ -90,6 +129,8 @@ class SupportController {
             $query = "UPDATE support_content SET " . implode(', ', $setParts) . " WHERE content_id = ?";
             $result = $this->db->insert($query, $types, $params);
 
+            $this->db->closeConnection();
+            
             if ($result) {
                 return ['success' => true, 'message' => 'FAQ updated successfully'];
             } else {
@@ -134,6 +175,8 @@ class SupportController {
             $query = "INSERT INTO support_content (" . implode(', ', $queryFields) . ") VALUES (" . implode(', ', $queryValues) . ")";
             $result = $this->db->insert($query, $types, $params);
 
+            $this->db->closeConnection();
+            
             if ($result) {
                 return ['success' => true, 'message' => 'FAQ created successfully'];
             } else {
@@ -141,67 +184,78 @@ class SupportController {
             }
         }
     }
-
-    public function getAllFAQs() {
-        // Display order has been removed, so we only sort by created_at
-        $query = "SELECT * FROM support_content ORDER BY created_at DESC";
-
-        $result = $this->db->select($query);
-
-        if ($result) {
-            return ['success' => true, 'data' => $result];
-        } else {
-            return ['success' => false, 'error' => 'Failed to retrieve FAQs'];
-        }
-    }
-
-    public function getFAQById($id) {
-        $query = "SELECT * FROM support_content WHERE content_id = ?";
-        $types = "i";
-        $params = [$id];
-
-        $result = $this->db->selectPrepared($query, $types, $params);
-
-        if ($result && count($result) > 0) {
-            return ['success' => true, 'data' => $result[0]];
-        } else {
-            return ['success' => false, 'error' => 'FAQ not found'];
-        }
-    }
-
+    
+    /**
+     * Delete FAQ
+     * 
+     * @param int $id FAQ ID
+     * @return array Result with success status and message
+     */
     public function deleteFAQ($id) {
+        $this->db->openConnection();
+        
         $query = "DELETE FROM support_content WHERE content_id = ?";
         $types = "i";
         $params = [$id];
-
-        $result = $this->db->insert($query, $types, $params);
-
+        
+        $result = $this->db->delete($query, $types, $params);
+        
+        $this->db->closeConnection();
+        
         if ($result) {
-            return ['success' => true];
+            return ['success' => true, 'message' => 'FAQ deleted successfully'];
         } else {
-            return ['success' => false, 'error' => 'Failed to delete FAQ'];
+            return ['success' => false, 'error' => 'Failed to delete FAQ: ' . $this->db->getLastError()];
+        }
+    }
+    
+    /**
+     * Get featured FAQs
+     * 
+     * @param int $limit Number of FAQs to return
+     * @return array Result with success status and data
+     */
+    public function getFeaturedFAQs($limit = 5) {
+        $this->db->openConnection();
+        
+        $query = "SELECT * FROM support_content WHERE featured = 1 AND status = 'active' ORDER BY created_at DESC LIMIT ?";
+        $types = "i";
+        $params = [$limit];
+        
+        $result = $this->db->selectPrepared($query, $types, $params);
+        
+        $this->db->closeConnection();
+        
+        if ($result) {
+            return ['success' => true, 'data' => $result];
+        } else {
+            return ['success' => false, 'error' => 'Failed to retrieve featured FAQs'];
+        }
+    }
+    
+    /**
+     * Get FAQs by category
+     * 
+     * @param string $category Category name
+     * @return array Result with success status and data
+     */
+    public function getFAQsByCategory($category) {
+        $this->db->openConnection();
+        
+        $query = "SELECT * FROM support_content WHERE category = ? AND status = 'active' ORDER BY created_at DESC";
+        $types = "s";
+        $params = [$category];
+        
+        $result = $this->db->selectPrepared($query, $types, $params);
+        
+        $this->db->closeConnection();
+        
+        if ($result) {
+            return ['success' => true, 'data' => $result];
+        } else {
+            return ['success' => false, 'error' => 'Failed to retrieve FAQs by category'];
         }
     }
 }
 
-// Handle direct API requests
-if (basename($_SERVER['PHP_SELF']) === 'SupportController.php') {
-    header('Content-Type: application/json');
-    $controller = new SupportController();
 
-    $action = $_GET['action'] ?? '';
-
-    if ($action === 'save') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        echo json_encode($controller->saveFAQ($data));
-    } elseif ($action === 'getAll') {
-        echo json_encode($controller->getAllFAQs());
-    } elseif ($action === 'getById' && isset($_GET['id'])) {
-        echo json_encode($controller->getFAQById($_GET['id']));
-    } elseif ($action === 'delete' && isset($_GET['id'])) {
-        echo json_encode($controller->deleteFAQ($_GET['id']));
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid action']);
-    }
-}

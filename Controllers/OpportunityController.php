@@ -9,7 +9,8 @@ class OpportunityController {
 
     public function __construct() {
         $this->db = new Database();
-        $this->opportunityModel = new Models\Opportunity("", "", "", new \DateTime(), new \DateTime(), "");
+        // Create a new Opportunity model with proper initialization
+        $this->opportunityModel = new Models\Opportunity();
     }
 
     /**
@@ -25,10 +26,15 @@ class OpportunityController {
      * Get opportunity by ID
      * 
      * @param int $opportunityId The opportunity ID
-     * @return array|false The opportunity data or false if not found
+     * @return array|null The opportunity data or null if not found
      */
     public function getOpportunityById($opportunityId) {
-        return $this->opportunityModel->getOpportunityById($opportunityId);
+        try {
+            return $this->opportunityModel->getOpportunityById($opportunityId);
+        } catch (Exception $e) {
+            error_log("Exception in getOpportunityById: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -48,26 +54,43 @@ class OpportunityController {
      * @return bool True if successful, false otherwise
      */
     public function deleteOpportunity($opportunityId) {
-        // First, check if there are any active applications for this opportunity
-        $applications = $this->getApplicationsByOpportunityId($opportunityId);
-        $hasActiveApplications = false;
-        
-        if ($applications) {
-            foreach ($applications as $application) {
-                if ($application['status'] === 'accepted') {
-                    $hasActiveApplications = true;
-                    break;
+        try {
+            // Log the deletion attempt
+            error_log("Attempting to delete opportunity ID: $opportunityId");
+            
+            // First, check if there are any active applications for this opportunity
+            $applications = $this->getApplicationsByOpportunityId($opportunityId);
+            $hasActiveApplications = false;
+            
+            if ($applications) {
+                foreach ($applications as $application) {
+                    if ($application['status'] === 'accepted') {
+                        $hasActiveApplications = true;
+                        error_log("Cannot delete opportunity ID: $opportunityId - has active applications");
+                        break;
+                    }
                 }
             }
-        }
-        
-        // If there are active applications, don't allow deletion
-        if ($hasActiveApplications) {
+            
+            // If there are active applications, don't allow deletion
+            if ($hasActiveApplications) {
+                return false;
+            }
+            
+            // Proceed with deletion
+            $result = $this->opportunityModel->deleteOpportunity($opportunityId);
+            
+            if ($result) {
+                error_log("Successfully deleted opportunity ID: $opportunityId");
+            } else {
+                error_log("Failed to delete opportunity ID: $opportunityId in model");
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Exception in deleteOpportunity: " . $e->getMessage());
             return false;
         }
-        
-        // Proceed with deletion
-        return $this->opportunityModel->deleteOpportunity($opportunityId);
     }
     
     /**
@@ -76,19 +99,31 @@ class OpportunityController {
      * @param int $opportunityId The opportunity ID
      * @return array|null Array of applications or null if none found
      */
-    public function getApplicationsByOpportunityId(int $opportunityId): ?array {
+    public function getApplicationsByOpportunityId($opportunityId) {
         return $this->opportunityModel->getApplicationsByOpportunityId($opportunityId);
     }
 
     /**
-     * Update opportunity status
+     * Update the status of an opportunity
      * 
      * @param int $opportunityId The opportunity ID
-     * @param string $status The new status
+     * @param string $status The new status ('open', 'closed', 'cancelled', 'deleted', 'reported')
      * @return bool True if successful, false otherwise
      */
     public function updateOpportunityStatus($opportunityId, $status) {
-        return $this->opportunityModel->updateOpportunityStatus($opportunityId, $status);
+        try {
+            // Validate status
+            $validStatuses = ['open', 'closed', 'cancelled', 'deleted', 'reported'];
+            if (!in_array($status, $validStatuses)) {
+                return false;
+            }
+            
+            // Update the opportunity status
+            return $this->opportunityModel->updateOpportunityStatus($opportunityId, $status);
+        } catch (Exception $e) {
+            error_log("Exception in updateOpportunityStatus: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -111,13 +146,13 @@ class OpportunityController {
     }
     
     /**
-     * Check if traveler has applied to an opportunity
+     * Check if traveler has already applied for an opportunity
      * 
      * @param int $travelerId The traveler ID
      * @param int $opportunityId The opportunity ID
-     * @return bool True if applied, false otherwise
+     * @return bool True if already applied, false otherwise
      */
-    public function checkApplied($travelerId, $opportunityId) {
+    public function checkIfTravelerApplied(int $travelerId, int $opportunityId): bool {
         return $this->opportunityModel->checkIfTravelerApplied($travelerId, $opportunityId);
     }
 
@@ -128,7 +163,47 @@ class OpportunityController {
      * @return bool True if successful, false otherwise
      */
     public function updateOpportunity($data) {
-        return $this->opportunityModel->updateOpportunity($data);
+        try {
+            // Validate required fields
+            $requiredFields = ['opportunity_id', 'title', 'description', 'location', 'start_date', 'end_date', 'category', 'requirements'];
+            foreach ($requiredFields as $field) {
+                if (!isset($data[$field]) || empty($data[$field])) {
+                    error_log("Missing required field for opportunity update: $field");
+                    return false;
+                }
+            }
+            
+            // Validate dates
+            $startDate = new DateTime($data['start_date']);
+            $endDate = new DateTime($data['end_date']);
+            
+            if ($endDate < $startDate) {
+                error_log("End date cannot be earlier than start date");
+                return false;
+            }
+            
+            // Format dates for database
+            $data['start_date'] = $startDate->format('Y-m-d');
+            $data['end_date'] = $endDate->format('Y-m-d');
+            
+            // Validate status if provided
+            if (isset($data['status'])) {
+                $validStatuses = ['open', 'closed', 'cancelled'];
+                if (!in_array($data['status'], $validStatuses)) {
+                    error_log("Invalid status for opportunity update: " . $data['status']);
+                    return false;
+                }
+            } else {
+                // Default to 'open' if not provided
+                $data['status'] = 'open';
+            }
+            
+            // Call the model to update the opportunity
+            return $this->opportunityModel->updateOpportunity($data);
+        } catch (Exception $e) {
+            error_log("Exception in updateOpportunity: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -251,6 +326,16 @@ class OpportunityController {
      */
     public function getApplicationsForHost(int $hostId): array {
         return $this->opportunityModel->getApplicationsForHost($hostId);
+    }
+
+    /**
+     * Apply for an opportunity
+     * 
+     * @param array $applicationData Application data including traveler_id, opportunity_id, message, etc.
+     * @return bool True if application was successful, false otherwise
+     */
+    public function applyForOpportunity(array $applicationData): bool {
+        return $this->opportunityModel->applyForOpportunity($applicationData);
     }
 }
 ?>

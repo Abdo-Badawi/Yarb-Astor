@@ -1,6 +1,7 @@
 <?php
 include_once '../Models/User.php';
 include_once '../Models/Database.php';
+require_once '../Models/User.php';
 use Models\User;
 
 class Auth {
@@ -25,7 +26,7 @@ class Auth {
             exit();
         }
 
-        public function register(User $user) {
+        public function register(\User $user) {
             $this->db = new Database();
             if ($this->db->openConnection()) {
                 // Ensure we have a valid connection before starting transaction

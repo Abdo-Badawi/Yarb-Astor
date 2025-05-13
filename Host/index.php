@@ -131,20 +131,21 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                             <?php else: ?>
                                 <?php foreach ($activeOpportunities as $opportunity): ?>
                                     <div class="d-flex mb-3 pb-3 border-bottom">
-                                        <div class="flex-shrink-0">
-                                            <?php if ($opportunity['opportunity_photo']): ?>
-                                                <img src="../uploads/opportunities/<?php echo $opportunity['opportunity_photo']; ?>" class="rounded" width="80" height="80" alt="Opportunity">
-                                            <?php else: ?>
-                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                                    <i class="fas fa-home text-primary" style="font-size: 2rem;"></i>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="ms-3">
+                                        <div class="flex-grow-1">
                                             <h6 class="mb-1"><?php echo htmlspecialchars($opportunity['title']); ?></h6>
-                                            <p class="small mb-1"><i class="fas fa-map-marker-alt me-1"></i> <?php echo htmlspecialchars($opportunity['location']); ?></p>
-                                            <p class="small mb-1"><i class="fas fa-calendar me-1"></i> <?php echo date('M d, Y', strtotime($opportunity['start_date'])); ?> - <?php echo date('M d, Y', strtotime($opportunity['end_date'])); ?></p>
-                                            <p class="small mb-0"><i class="fas fa-users me-1"></i> <?php echo $opportunity['application_count']; ?> applications</p>
+                                            <p class="small mb-1">
+                                                <i class="fas fa-map-marker-alt me-1"></i> 
+                                                <?php echo htmlspecialchars($opportunity['location']); ?>
+                                            </p>
+                                            <p class="small mb-0">
+                                                <i class="fas fa-users me-1"></i> 
+                                                <?php echo $opportunity['application_count']; ?> applications
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <a href="view-opportunity.php?id=<?php echo $opportunity['opportunity_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -169,7 +170,7 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                                 <?php foreach ($recentApplications as $application): ?>
                                     <div class="d-flex mb-3 pb-3 border-bottom">
                                         <div class="flex-shrink-0">
-                                            <?php if ($application['profile_picture']): ?>
+                                            <?php if (!empty($application['profile_picture'])): ?>
                                                 <img src="../uploads/profiles/<?php echo $application['profile_picture']; ?>" class="rounded-circle" width="50" height="50" alt="Applicant">
                                             <?php else: ?>
                                                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -180,8 +181,12 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                                         <div class="ms-3">
                                             <h6 class="mb-1"><?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?></h6>
                                             <p class="small mb-1">Applied for: <?php echo htmlspecialchars($application['opportunity_title']); ?></p>
-                                            <p class="small mb-1">Status: <span class="badge bg-<?php echo $application['status'] === 'pending' ? 'warning' : ($application['status'] === 'accepted' ? 'success' : 'danger'); ?>"><?php echo ucfirst($application['status']); ?></span></p>
-                                            <p class="small mb-0 text-muted"><?php echo date('M d, Y', strtotime($application['applied_date'])); ?></p>
+                                            <p class="small mb-0">
+                                                Status: 
+                                                <span class="badge <?php echo $application['status'] == 'pending' ? 'bg-warning' : ($application['status'] == 'accepted' ? 'bg-success' : 'bg-danger'); ?>">
+                                                    <?php echo ucfirst($application['status']); ?>
+                                                </span>
+                                            </p>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -207,11 +212,37 @@ $activeOpportunities = $dashboardData['activeOpportunities'];
                                     <?php foreach ($recentMessages as $message): ?>
                                         <a href="messages.php?conversation=<?php echo $message['sender_id']; ?>" class="list-group-item list-group-item-action <?php echo $message['is_read'] ? '' : 'bg-light'; ?>">
                                             <div class="d-flex w-100 justify-content-between">
-                                                <h6 class="mb-1"><?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?></h6>
-                                                <small><?php echo date('g:i a', strtotime($message['timestamp'])); ?></small>
+                                                <div class="d-flex align-items-center">
+                                                    <?php if (!empty($message['profile_picture'])): ?>
+                                                        <img src="../uploads/profiles/<?php echo $message['profile_picture']; ?>" class="rounded-circle me-2" width="40" height="40" alt="Sender">
+                                                    <?php else: ?>
+                                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                            <i class="fas fa-user text-primary"></i>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div>
+                                                        <h6 class="mb-0"><?php echo htmlspecialchars($message['first_name'] . ' ' . $message['last_name']); ?></h6>
+                                                        <p class="mb-0 text-truncate" style="max-width: 200px;"><?php echo htmlspecialchars($message['content']); ?></p>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <?php 
+                                                    $timestamp = strtotime($message['timestamp']);
+                                                    $now = time();
+                                                    $diff = $now - $timestamp;
+                                                    
+                                                    if ($diff < 60) {
+                                                        echo "Just now";
+                                                    } elseif ($diff < 3600) {
+                                                        echo floor($diff / 60) . "m ago";
+                                                    } elseif ($diff < 86400) {
+                                                        echo floor($diff / 3600) . "h ago";
+                                                    } else {
+                                                        echo date("M d", $timestamp);
+                                                    }
+                                                    ?>
+                                                </small>
                                             </div>
-                                            <p class="mb-1"><?php echo htmlspecialchars(substr($message['content'], 0, 100)) . (strlen($message['content']) > 100 ? '...' : ''); ?></p>
-                                            <small class="text-muted"><?php echo date('M d, Y', strtotime($message['timestamp'])); ?></small>
                                         </a>
                                     <?php endforeach; ?>
                                 </div>
